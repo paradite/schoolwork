@@ -1,0 +1,49 @@
+1. In the homework assignment, we are using character-based ngrams,
+i.e., the gram units are characters. Do you expect token-based ngram
+models to perform better?
+
+It depends on the size of the training data. For a small training set,
+if may not have sufficient coverage of "possible tokens" (words) in a
+language. For example, it may contain less than 1% of the possible words
+in a languge, and the token-based ngram model will not be effective
+on tests because most of the words are not recorded in the model.
+
+If the training set is sufficiently large to cover majority of common
+tokens in a language, then it will be more effective than character-based
+ngrams because words are, in nature, better indicators of a particular 
+language than a sequence of characters.
+
+2. What do you think will happen if we provided more data for each
+category for you to build the language models? What if we only
+provided more data for Indonesian?
+
+If we provide more data for each category, then the language model will be
+more accurate as more features of the language is added.
+
+If we only provide more data for Indonesian, then the accuracy of detecting
+Indonesian will improve, i.e. if the test language is Indonesian, the probability
+that the language model gives the correct answer will increase. Also, languages that
+have similar character sequences as Indonesian may have a higher chance of being
+wrongly detected as Indonesian.
+
+3. What do you think will happen if you strip out punctuations and/or
+numbers? What about converting upper case characters to lower case?
+
+By stripping out punctuations and/or numbers, the ngrams will have less
+patterns common to multiple languges, hence improving the accuracy when
+detecting a particular language. 
+
+Converting characters to lower case will consolidate duplicates of the ngrams 
+which only differ in upper/lower case, making the duplicated ngrams more 
+accurately represented in the language model, hence improving the detection accuracy.
+
+4. We use 4-gram models in this homework assignment. What do you think
+will happen if we varied the ngram size, such as using unigrams,
+bigrams and trigrams?
+
+Using a ngram size small than 4 will lead to reduction in the accuracy of detection
+as sequence of characters of size less than 4 is less meaningful for detecting a languge.
+The smaller the size of ngram, the less likely that the sequence of characters will be
+unique to a particular language, i.e. the ngrams will be more likely to be shared across
+different languages, making detection of language less effective.
+
