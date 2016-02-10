@@ -20,9 +20,13 @@ const float DEG2RAD = 3.14159/180;
 
 // Android drawing parameters
 
-// Shift body down by 2 unit;
-float bodyShift = -2;
-float bodyLength = 10.0;
+// Shift body down by 1 unit;
+float bodyShift = -1;
+
+// Drawing parameters for the Android
+float bodyWidth = 10.0;
+float bodyLength = 8.0;
+float bodyRoundCornerRadius = 1.0;
 
 float headRadius = 5.0;
 float antennaWidth = 0.3;
@@ -30,12 +34,19 @@ float antennaHeight = 6.0;
 float antennaAngle = 35.0;
 float antennaShiftX = 2.0;
 float antennaShiftY = 3.0;
+float eyeShift = 2.2;
+float eyeRadius = headRadius/12;
 
 float armLength = 6.0;
-float armWidth = 1.5;
+float armWidth = 2.0;
 float handRadius = armWidth / 2;
 
-float defaultGap = 0.5;
+float legLength = 4.0;
+float legWidth = armWidth;
+float footRadius = handRadius;
+float footShift = bodyWidth/5;
+
+float defaultGap = 0.3;
 
 
 void drawFullCircle(float radius){
@@ -85,7 +96,7 @@ void drawAntenna(){
 
 void drawEye(){
     glColor3f(1.0, 1.0, 1.0);
-    drawFullCircle(headRadius/12);
+    drawFullCircle(eyeRadius);
     glColor3f(0.643, 0.792, 0.224);
 }
 
@@ -94,11 +105,11 @@ void drawHead() {
         glTranslatef(0, bodyLength /2 + bodyShift + defaultGap, 0);
         drawHalfCircle(headRadius);
         glPushMatrix();
-            glTranslatef(-headRadius/2.2, headRadius/2.2,0);
+            glTranslatef(-eyeShift, eyeShift,0);
             drawEye();  
         glPopMatrix();
         glPushMatrix();
-            glTranslatef(headRadius/2.2, headRadius/2.2,0);
+            glTranslatef(eyeShift, eyeShift,0);
             drawEye();  
         glPopMatrix();
         glPushMatrix();
@@ -117,30 +128,72 @@ void drawHead() {
 void drawBody(){
     glPushMatrix();
         glTranslatef(0, bodyShift, 0);
-        drawFullSquare(bodyLength);
+        drawFullRect(bodyWidth, bodyLength);
+        // Draw rounded corner
+        glTranslatef(0, -bodyLength/2, 0);
+        drawFullRect(bodyWidth - bodyRoundCornerRadius*2, bodyRoundCornerRadius*2);
+        glPushMatrix();
+            glTranslatef((bodyWidth)/2 - bodyRoundCornerRadius, 0, 0);
+            drawFullCircle(bodyRoundCornerRadius);
+        glPopMatrix();
+        glPushMatrix();
+            glTranslatef(-(bodyWidth)/2 + bodyRoundCornerRadius, 0, 0);
+            drawFullCircle(bodyRoundCornerRadius);
+        glPopMatrix();
     glPopMatrix();
 }
 
 void drawHand(){
     glPushMatrix();
-        drawHalfCircle(handRadius);
+        drawFullCircle(handRadius);
+    glPopMatrix();
+}
+
+void drawArm(){
+    drawFullRect(armWidth, armLength);
+    glPushMatrix();
+        glTranslatef(0, (armLength)/2, 0);
+        drawHalfCircle(armWidth/2);
     glPopMatrix();
 }
 
 void drawArms(){
     // Left arm
     glPushMatrix();
-    glTranslatef(-bodyLength/2 - armWidth/2 - defaultGap, bodyShift + (bodyLength - armLength)/2 - handRadius/2, 0);
-    drawFullRect(armWidth, armLength);
-    glTranslatef(0, (armLength)/2, 0);
+    glTranslatef(-bodyWidth/2 - armWidth/2 - defaultGap, bodyShift + (bodyLength - armLength)/2 - handRadius/2, 0);
+    drawArm();
+    glTranslatef(0, (-armLength)/2, 0);
     drawHand();
     glPopMatrix();
     // Right arm
     glPushMatrix();
-    glTranslatef(bodyLength/2 + armWidth/2 + defaultGap, bodyShift + (bodyLength - armLength)/2 - handRadius/2, 0);
-    drawFullRect(armWidth, armLength);
-    glTranslatef(0, (armLength)/2, 0);
+    glTranslatef(bodyWidth/2 + armWidth/2 + defaultGap, bodyShift + (bodyLength - armLength)/2 - handRadius/2, 0);
+    drawArm();
+    glTranslatef(0, (-armLength)/2, 0);
     drawHand();
+    glPopMatrix();
+}
+
+void drawLeg(){
+    drawFullRect(legWidth, legLength);
+}
+
+void drawFoot(){
+    drawFullCircle(footRadius);
+}
+
+void drawBottomParts(){
+    glPushMatrix();
+        glTranslatef(-footShift, bodyShift - bodyLength/2 - bodyRoundCornerRadius, 0);
+        drawLeg();
+        glTranslatef(0, -(legLength)/2, 0);
+        drawFoot();
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(footShift, bodyShift - bodyLength/2 - bodyRoundCornerRadius, 0);
+        drawLeg();
+        glTranslatef(0, -(legLength)/2, 0);
+        drawFoot();
     glPopMatrix();
 }
 
@@ -156,14 +209,18 @@ void display(void)
     glRotatef(alpha, 0, 0, 1);
     
     //draw your stuff here
+
     // Android color
     glColor3f(0.643, 0.792, 0.224);
+
+    // Transformations to make Android more lively!
     glTranslatef(5, -5, 0);
     glRotatef(45, 0, 0, 1);
     glScalef(1.5, 1.5, 1);
     drawHead();
     drawBody();
     drawArms();
+    drawBottomParts();
     glPopMatrix();
     glFlush ();
 }
