@@ -16,11 +16,14 @@ glRotatef()
 glScalef()
 
 Method modified:
-display(), init() and keyboard()
+display()
+init() - initialize stars and planets
+main() - added glutTimerFunc
+keyboard() - added t for clock mode
 
 Coolest thing:
 Blinking stars
-
-Any other things:
 Satellites for planets
 Shadows for planets
+
+Any other things:

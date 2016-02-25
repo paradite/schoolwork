@@ -68,7 +68,7 @@ public:
         size = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/0.2));
         phaseOffset = rand() % TIMER_MAX;
         blinkSpeed = rand()%3 + 1;
-        printf("%f %f %f %i %i\n", x, y, size, phaseOffset, blinkSpeed);
+//        printf("%f %f %f %i %i\n", x, y, size, phaseOffset, blinkSpeed);
     }
 };
 
@@ -207,8 +207,7 @@ void drawPlanets() {
         struct tm * timeinfo = localtime(&current_time);
         double angleSec = 360-(float)timeinfo->tm_sec/60*360 + 90;
         double angleMin = 360-(float)timeinfo->tm_min/60*360 + 90;
-        double angleHour = 360-(float)timeinfo->tm_hour/24*360 + 90;
-        
+        double angleHour = 360-(float)(timeinfo->tm_hour%12)/12*360 + 90;
         for (int i = 0; i < numPlanets; i++) {
             drawPlanetInClockMode(planetList[i], angleHour, angleMin, angleSec);
         }
