@@ -16,18 +16,11 @@ glRotatef()
 glScalef()
 
 Method modified:
-display() and keyboard()
-
-Any other things:
-
+display(), init() and keyboard()
 
 Coolest thing:
+Blinking stars
 
-
-building options:
-The code uses C++11 library <chrono>
-For building on OS X, need to change:
-C++ Language Dialect to GNU++11
-C++ Standard Library to libc++
-
-Both settings can be found in Xcode under Apple LLVM 6.1 - Language - C++ in Building Settings
+Any other things:
+Satellites for planets
+Shadows for planets
