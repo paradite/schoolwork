@@ -1,4 +1,5 @@
 ; ; Diagnosis Program adapted from Textbook p.97
+; ; Uses CLIPS version 6.30 on OS X
 ; ; TEMPLATES
 
 ; ; Sign of a symptom
