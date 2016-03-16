@@ -19,6 +19,7 @@ from util import *
 start_time = time.time()
 
 dictionary = {}
+docLengthList = [];
 
 totalDocuments = 0
 maxDocID = 0
@@ -27,20 +28,20 @@ def parse_query(query):
     return [normalize_token(t) for t in query.split(' ')]
 
 def getQueryWeight(term, query):
-    # print('for term ' + term + ' in query ' + str(query))
+    print('for term ' + term + ' in query ' + str(query))
     rawtf = query.count(term)
     tf = 1
     if rawtf > 0:
         tf = 1 + math.log(rawtf, 10)
-    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
+    print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
     df = 0
     idf = 0
     if term in dictionary:
         df = int(dictionary[term][1])
         if df > 0:
             idf = math.log(totalDocuments / df, 10)
-    # print('df: ' + str(df) + ' , idf: ' + str(idf))
-    # print('tfidf: ' + str(tf * idf))
+    print('df: ' + str(df) + ' , idf: ' + str(idf))
+    print('tfidf: ' + str(tf * idf))
     return tf * idf
 
 def getDocWeight(term, docID, rawtf):
@@ -55,7 +56,7 @@ def getDocWeight(term, docID, rawtf):
 
 def search():
     stemmer = PorterStemmer()
-    global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, maxDocID
+    global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, maxDocID, docLengthList
 
     with open(posting_file_p) as postings:
         totalDocuments, maxDocID = [int(x) for x in postings.readline().split(' ')]
@@ -68,8 +69,12 @@ def search():
             term, freq = term.strip('\r\n').strip('\n').split(' ')
             dictionary[term] = (i + 1, freq)
 
-    with open(queries_file_q) as queries:
+    with open(doc_length_file) as docLengths:
+        docLengthList = [0] * (maxDocID + 1)
+        for i, length in enumerate(docLengths):
+            docLengthList[i] = int(length)
 
+    with open(queries_file_q) as queries:
         for query in queries:
             print('==============')
             terms = parse_query(query.strip('\r\n').strip('\n'))
@@ -94,9 +99,14 @@ def search():
                         " score: " + "{0:.2f}".format(docScores[docID]))
             # Normalization using sum of squares
             # print(docScores)
+            print("queryWeightSqSum: " + str(math.sqrt(queryWeightSqSum)))
             for i, score in enumerate(docScores):
                 if score != 0 and queryWeightSqSum != 0 and docWeightSqSum[i] != 0:
+                    print('doc ' + str(i) + ' score: ' + str(score))
+                    print('doc length: ' + str(docLengthList[i]))
                     docScores[i] = score / (math.sqrt(queryWeightSqSum) * math.sqrt(docWeightSqSum[i]))
+                    docScores[i] = docScores[i] / docLengthList[i]
+                    print('doc ' + str(i) + ' norma: ' + str(docScores[i]))
             # print(docScores)
             # http://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
             result = [i[0] for i in sorted(enumerate(docScores), key=lambda x:x[1], reverse=True)]
@@ -118,7 +128,7 @@ def usage():
     + " -o output-file-of-results")
 
 queries_file_i = dictionary_file_d = posting_file_p = output_file = None
-
+doc_length_file = "doclength.txt"
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'q:d:p:o:')
 except getopt.GetoptError, err:

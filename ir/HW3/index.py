@@ -33,11 +33,22 @@ def generate_word_dict(filedir):
             word_dict[word].append([i, wordsArr.count(word)])
     return OrderedDict(sorted(word_dict.items()))
 
+def generate_doc_length(filedir):
+    ''' Generates document length for each document'''
+    corpus = create_corpus(filedir)
+    doc_ids = get_doc_ids(filedir)
+    docLengthArray = [0] * (int(doc_ids[len(doc_ids) - 1]) + 1)
+    print("Generating document length")
+    for i in doc_ids:
+        docLengthArray[int(i)] = len([normalize_token(j) for j in corpus.words(i)])
+    return docLengthArray
+
 def index():
     global input_file_i, dictionary_file_d, posting_file_p
 
     word_dict = generate_word_dict(input_file_i)
-    with open(dictionary_file_d, "w") as d, open(posting_file_p, "w") as p:
+    docLengthArray = generate_doc_length(input_file_i)
+    with open(dictionary_file_d, "w") as d, open(posting_file_p, "w") as p, open(doc_length_file, "w") as l:
         print("Writing to files")
         # write the number of documents and max docID at first line of the postings file
         docIDs = get_doc_ids(input_file_i)
@@ -45,12 +56,15 @@ def index():
         for k, v in word_dict.items():
             d.write("{} {}\n".format(k, len(v)))
             p.write(" ".join([e[0] + "," + str(e[1]) for e in v]) + "\n")
+        for length in docLengthArray:
+            l.write(str(length) + "\n")
         
     
 def usage():
     print "usage: " + sys.argv[0] + " -i training-input-file -d output-dictionary-file -p output-posting-file"
 
 input_file_i = dictionary_file_d = posting_file_p = None
+doc_length_file = "doclength.txt"
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
 except getopt.GetoptError, err:
