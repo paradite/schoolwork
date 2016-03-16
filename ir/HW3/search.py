@@ -28,20 +28,20 @@ def parse_query(query):
     return [normalize_token(t) for t in query.split(' ')]
 
 def getQueryWeight(term, query):
-    print('for term ' + term + ' in query ' + str(query))
+    # print('for term ' + term + ' in query ' + str(query))
     rawtf = query.count(term)
     tf = 1
     if rawtf > 0:
         tf = 1 + math.log(rawtf, 10)
-    print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
+    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
     df = 0
     idf = 0
     if term in dictionary:
         df = int(dictionary[term][1])
         if df > 0:
             idf = math.log(totalDocuments / df, 10)
-    print('df: ' + str(df) + ' , idf: ' + str(idf))
-    print('tfidf: ' + str(tf * idf))
+    # print('df: ' + str(df) + ' , idf: ' + str(idf))
+    # print('tfidf: ' + str(tf * idf))
     return tf * idf
 
 def getDocWeight(term, docID, rawtf):
@@ -64,11 +64,14 @@ def search():
         print("maxDocID: " + str(maxDocID))
 
     results = []
+
+    # store dictionary in memory
     with open(dictionary_file_d) as dicts:
         for i, term in enumerate(dicts):
             term, freq = term.strip('\r\n').strip('\n').split(' ')
             dictionary[term] = (i + 1, freq)
 
+    # store document length in memory
     with open(doc_length_file) as docLengths:
         docLengthList = [0] * (maxDocID + 1)
         for i, length in enumerate(docLengths):
@@ -93,20 +96,19 @@ def search():
                     docWeight = getDocWeight(term, docID, rawtf)
                     docScores[docID] += docWeight * queryWeight
                     docWeightSqSum[docID] += (docWeight * docWeight)
-                    print(str(docID) + 
-                        " que w: " + "{0:.2f}".format(queryWeight) + 
-                        " doc w: " + "{0:.2f}".format(docWeight) + 
-                        " score: " + "{0:.2f}".format(docScores[docID]))
+                    # print(str(docID) + 
+                    #     " que w: " + "{0:.2f}".format(queryWeight) + 
+                    #     " doc w: " + "{0:.2f}".format(docWeight) + 
+                    #     " score: " + "{0:.2f}".format(docScores[docID]))
             # Normalization using sum of squares
             # print(docScores)
-            print("queryWeightSqSum: " + str(math.sqrt(queryWeightSqSum)))
+            # print("queryWeightSqSum: " + str(math.sqrt(queryWeightSqSum)))
             for i, score in enumerate(docScores):
                 if score != 0 and queryWeightSqSum != 0 and docWeightSqSum[i] != 0:
-                    print('doc ' + str(i) + ' score: ' + str(score))
-                    print('doc length: ' + str(docLengthList[i]))
+                    # normalization of vector
                     docScores[i] = score / (math.sqrt(queryWeightSqSum) * math.sqrt(docWeightSqSum[i]))
+                    # normalization of document length
                     docScores[i] = docScores[i] / docLengthList[i]
-                    print('doc ' + str(i) + ' norma: ' + str(docScores[i]))
             # print(docScores)
             # http://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
             result = [i[0] for i in sorted(enumerate(docScores), key=lambda x:x[1], reverse=True)]
