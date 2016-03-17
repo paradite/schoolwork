@@ -15,7 +15,6 @@ from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 
 from util import *
 
-''' Computes doc_ids that matches a Boolean query'''
 start_time = time.time()
 
 dictionary = {}

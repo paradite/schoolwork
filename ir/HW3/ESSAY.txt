@@ -1,1 +1,34 @@
-1.
+1. In this assignment, we didn't ask you to support phrasal queries, which is a feature that is typically
+supported in web search engines. Describe how you would support phrasal search in conjunction with the
+VSM model. A sketch of the algorithm is sufficient.
+
+1) During the indexing phase, for each unique term in a document, instead of saving the term frequency in the postings list, save the positional indices for the occurences of the term.
+2) During the search phase, first search using the entire query phrase.
+3) Use the positional indicies to filter away documents that do not have all the terms in the correct continuous order, i.e. the same order as the query phrase and no extra terms in between.
+4) For the documents that contains the query phrase, run VSM model and rank them to obtain the result.
+5) If the number of results is less than required, break up the phrase of length N into 2 sub-phrase of length N-1, [0:N-1] and [1:N] respectively, repeat steps 3-4 and obtain the results for each sub-phrase.
+6) Combine the result with the previous result for full phrase, with the sub-phrase results ranked lower than the full phrase result.
+7) Repeat 3-5 if the number of results is insufficient, using sub-phrases of length N-2, N-3,..., until there is enough results or the sub-phrases reach length 1. The results for sub-phrases of shorter length will rank lower than those of longer length.
+
+2. Describe how your search engine reacts to long documents and long queries as compared to short
+documents and queries. Is the normalization you use sufficient to address the problems (see Section 6.4.4
+for a hint)? In your judgement, is the ltc.lnc scheme (n.b., not the ranking scheme you were asked to
+implement) sufficient for retrieving documents from the Reuters-21578 collection?
+
+Generally, longer documents and longer queries takes more computational time as more time is needed to retrieve postings list and compute scores.
+
+In longer documents, the tf score after normalization tends to be smaller than the same term in shorter documents. This is the effect due to the fact that there are more unique words in the longer documents and the normalization will reduce the tf scores for the terms that appear less frequently in the long document, as described in Section 6.4.4. 
+As a result, shorter documents are more likely to be ranked higher than longer documents even if they have the exact same number of occurences for the query terms.
+
+The length of the query would not affect the accuracy of the search when the query is short. If the length of the query gets very big however, we start to have a high recall as more documents become relevant to the query. This means the score will have a small variance and the ranking will become less meaningful as many documents will have similar scores.
+
+The normalization that is implemented (cosine normalization) is not optimal in addressing the bias towards shorter documents. In order to correct the biasness, we can implement the pivoted normalization.
+
+If we use the ltc.lnc scheme, it will help to address the problem of long documents having lower scores. This is because longer documents have more stop words with high document frequency, and if we take into account of idf of the terms, the stop words will receive lower scores, giving terms with low document frequencies (terms that typically appear in the query) a relatively higher score. However, the effect will be less visible on shorter documents. 
+Also, by not using idf on query, we risk assigning equal weightage to stop words in queries as normal terms.
+
+3. Do you think zone or field parametric indices would be useful for practical search in the Reuters collection?
+
+Zone information would be useful in the case of the Reuters collection as it appears that all documents in the collection have the capitalized title information at the top of the article. This could be used to enforce the queries to contain certain terms in the title to narrow down the search results and filter out irrelevant documents.
+
+As for other zone and field parametric indices, they might help to narrow down the result if the documents relevant to the query have the available zone or field information. However, in the case where the wanted document does not have the information available, it may be missed out in the results.

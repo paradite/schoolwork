@@ -14,10 +14,6 @@ from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 from util import *
 from ordereddict import OrderedDict
 
-''' Index files into dictornary and posting list
-Expected operations: tokenize, stemmer and case folding 
-'''
-
 def generate_word_dict_and_doc_length(filedir):
     ''' Generates dictionary of posting list and doc lengths'''
     corpus = create_corpus(filedir)

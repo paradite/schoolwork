@@ -109,6 +109,8 @@ void drawSphere(double r)
 
 }
 
+void draw
+
 void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
