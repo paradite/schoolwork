@@ -10,6 +10,15 @@ from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 
 stemmer = PorterStemmer()   
 
+def getDocWeight(rawtf):
+    tf = 1
+    if rawtf > 0:
+        tf = 1 + math.log(rawtf, 10)
+    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
+    idf = 1
+    # print('tfidf: ' + str(tf * idf))
+    return tf * idf
+
 def create_corpus(filedir):
     ''' Creates a corpus based on files that matches the regex in file directory'''
     return PlaintextCorpusReader(filedir, ".*")

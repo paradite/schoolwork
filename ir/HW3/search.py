@@ -44,16 +44,6 @@ def getQueryWeight(term, query):
     # print('tfidf: ' + str(tf * idf))
     return tf * idf
 
-def getDocWeight(term, docID, rawtf):
-    # print('for term ' + term + ' in doc ' + str(docID))
-    tf = 1
-    if rawtf > 0:
-        tf = 1 + math.log(rawtf, 10)
-    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
-    idf = 1
-    # print('tfidf: ' + str(tf * idf))
-    return tf * idf
-
 def search():
     stemmer = PorterStemmer()
     global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, maxDocID, docLengthList
@@ -75,38 +65,34 @@ def search():
     with open(doc_length_file) as docLengths:
         docLengthList = [0] * (maxDocID + 1)
         for i, length in enumerate(docLengths):
-            docLengthList[i] = int(length)
+            docLengthList[i] = float(length)
 
     with open(queries_file_q) as queries:
         for query in queries:
             print('==============')
             terms = parse_query(query.strip('\r\n').strip('\n'))
             queryWeightSqSum = 0
-            docWeightSqSum = [0] * (maxDocID + 1)
             docScores = [0] * (maxDocID + 1)
             for term in terms:
                 print(term)
                 if not term in dictionary:
                     continue
                 queryWeight = getQueryWeight(term, terms)
-                queryWeightSqSum += queryWeight * queryWeight
+                queryWeightSqSum += queryWeight ** 2
                 postings = get_posting_list(int(dictionary[term][0]), posting_file_p)
                 for doc in postings:
                     docID, rawtf = [int(i) for i in doc.split(',')]
-                    docWeight = getDocWeight(term, docID, rawtf)
+                    docWeight = getDocWeight(rawtf)
                     docScores[docID] += docWeight * queryWeight
-                    docWeightSqSum[docID] += (docWeight * docWeight)
                     # print(str(docID) + 
                     #     " que w: " + "{0:.2f}".format(queryWeight) + 
-                    #     " doc w: " + "{0:.2f}".format(docWeight) + 
                     #     " score: " + "{0:.2f}".format(docScores[docID]))
-            # Normalization using sum of squares
             # print(docScores)
-            # print("queryWeightSqSum: " + str(math.sqrt(queryWeightSqSum)))
+            # Normalization using sum of squares
             for i, score in enumerate(docScores):
-                if score != 0 and queryWeightSqSum != 0 and docWeightSqSum[i] != 0:
-                    # normalization of vector
-                    docScores[i] = score / (math.sqrt(queryWeightSqSum) * math.sqrt(docWeightSqSum[i]))
+                if score != 0 and queryWeightSqSum != 0 and docLengthList[i] != 0:
+                    # normalization of query length
+                    docScores[i] = score / (math.sqrt(queryWeightSqSum))
                     # normalization of document length
                     docScores[i] = docScores[i] / docLengthList[i]
             # print(docScores)
