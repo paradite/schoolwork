@@ -28,6 +28,23 @@ int current_object = 0;
 
 using namespace std;
 
+float no_mat[] = {0.0f, 0.0f, 0.0f, 1.0f};
+float mat_ambient[] = {0.3f, 0.3f, 0.3f, 1.0f};
+
+// Blue color texture
+float mat_diffuse_blue[] = {0.1f, 0.5f, 0.8f, 1.0f};
+float mat_emission_blue[] = {0.025f, 0.125f, 0.2f, 0.0f};
+float mat_highlight_blue[] = { 0.4f, 0.8f, 1.1f, 1.0f };
+
+// Silver color texture
+float mat_diffuse_silver[] = {0.75f, 0.75f, 0.75f, 1.0f};
+float mat_emission_silver[] = {0.1f, 0.1f, 0.1f, 0.0f};
+float mat_highlight_silver[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+
+// small particle parameters
+const int SMALL_PARTICLES_NUMBER = 50;
+float small_particle_params[SMALL_PARTICLES_NUMBER][4];
+
 void setupLighting()
 {
 	glShadeModel(GL_SMOOTH);
@@ -55,19 +72,13 @@ void setupLighting()
 }
 
 
-void drawSphere(double r)
+void drawSphere(double r, float mat_diffuse[], float mat_emission[], float mat_highlight[])
 {
-
-	float no_mat[] = {0.0f, 0.0f, 0.0f, 1.0f};
-    float mat_ambient[] = {0.3f, 0.3f, 0.3f, 1.0f};
-    float mat_diffuse[] = {0.1f, 0.5f, 0.8f, 1.0f};
-	float mat_emission[] = {0.3f, 0.2f, 0.2f, 0.0f};
-    float mat_highlight[] = { 0.3f, 0.3f, 0.3f, 1.0f };
 	float no_shininess = 0.0f;
-	float shininess = 50.0f;
+	float shininess = 80.0f;
     glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+	glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
 
 	if(m_Highlight)
 	{
@@ -80,7 +91,7 @@ void drawSphere(double r)
 
 	
     int i,j;
-	int n = 20;
+	int n = 40;
     for(i=0;i<n;i++)
 		for(j=0;j<2*n;j++)
 		if(m_Smooth)
@@ -109,7 +120,153 @@ void drawSphere(double r)
 
 }
 
-void draw
+void drawHalfSphere(double r, float mat_diffuse[], float mat_emission[], float mat_highlight[])
+{
+    float no_shininess = 0.0f;
+    float shininess = 80.0f;
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    
+    if(m_Highlight)
+    {
+        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_highlight);
+        glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+    } else {
+        glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+        glMaterialf(GL_FRONT, GL_SHININESS, no_shininess);
+    }
+    
+    
+    int i,j;
+    int n = 40;
+    for(i=0;i<n;i++)
+        for(j=0;j<n;j++)
+            if(m_Smooth)
+            {
+                glBegin(GL_POLYGON);
+                // the normal of each vertex is actaully its own coordinates normalized for a sphere
+                glNormal3d(sin(i*M_PI/n)*cos(j*M_PI/n),cos(i*M_PI/n)*cos(j*M_PI/n),sin(j*M_PI/n));
+                glVertex3d(r*sin(i*M_PI/n)*cos(j*M_PI/n),r*cos(i*M_PI/n)*cos(j*M_PI/n),r*sin(j*M_PI/n));
+                glNormal3d(sin((i+1)*M_PI/n)*cos(j*M_PI/n),cos((i+1)*M_PI/n)*cos(j*M_PI/n),sin(j*M_PI/n));
+                glVertex3d(r*sin((i+1)*M_PI/n)*cos(j*M_PI/n),r*cos((i+1)*M_PI/n)*cos(j*M_PI/n),r*sin(j*M_PI/n));
+                glNormal3d(sin((i+1)*M_PI/n)*cos((j+1)*M_PI/n),cos((i+1)*M_PI/n)*cos((j+1)*M_PI/n),sin((j+1)*M_PI/n));
+                glVertex3d(r*sin((i+1)*M_PI/n)*cos((j+1)*M_PI/n),r*cos((i+1)*M_PI/n)*cos((j+1)*M_PI/n),r*sin((j+1)*M_PI/n));
+                glNormal3d(sin(i*M_PI/n)*cos((j+1)*M_PI/n),cos(i*M_PI/n)*cos((j+1)*M_PI/n),sin((j+1)*M_PI/n));
+                glVertex3d(r*sin(i*M_PI/n)*cos((j+1)*M_PI/n),r*cos(i*M_PI/n)*cos((j+1)*M_PI/n),r*sin((j+1)*M_PI/n));
+                glEnd();
+            } else	{
+                glBegin(GL_POLYGON);
+                // Explanation: the normal of the whole polygon is the coordinate of the center of the polygon for a sphere
+                glNormal3d(sin((i+0.5)*M_PI/n)*cos((j+0.5)*M_PI/n),cos((i+0.5)*M_PI/n)*cos((j+0.5)*M_PI/n),sin((j+0.5)*M_PI/n));
+                glVertex3d(r*sin(i*M_PI/n)*cos(j*M_PI/n),r*cos(i*M_PI/n)*cos(j*M_PI/n),r*sin(j*M_PI/n));
+                glVertex3d(r*sin((i+1)*M_PI/n)*cos(j*M_PI/n),r*cos((i+1)*M_PI/n)*cos(j*M_PI/n),r*sin(j*M_PI/n));
+                glVertex3d(r*sin((i+1)*M_PI/n)*cos((j+1)*M_PI/n),r*cos((i+1)*M_PI/n)*cos((j+1)*M_PI/n),r*sin((j+1)*M_PI/n));
+                glVertex3d(r*sin(i*M_PI/n)*cos((j+1)*M_PI/n),r*cos(i*M_PI/n)*cos((j+1)*M_PI/n),r*sin((j+1)*M_PI/n));
+                glEnd();
+            }
+    
+}
+
+void drawCylinder(double r, double height, float mat_diffuse[], float mat_emission[], float mat_highlight[]) {
+    glPushMatrix();
+    glRotatef(90, 0, 1, 0);
+    glTranslatef(0, 0, -height/2);
+    float no_shininess = 0.0f;
+    float shininess = 80.0f;
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    
+    if(m_Highlight)
+    {
+        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_highlight);
+        glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+    } else {
+        glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+        glMaterialf(GL_FRONT, GL_SHININESS, no_shininess);
+    }
+    
+    int i,j;
+    int n = 80;
+    for(i=0;i<n;i++)
+        for(j=0;j<n;j++)
+            if(m_Smooth)
+            {
+                glBegin(GL_POLYGON);
+                glNormal3d(sin((i)*M_PI/n * 2),cos((i)*M_PI/n * 2),0);
+                glVertex3d(r*sin(i*M_PI/n * 2),r*cos(i*M_PI/n * 2),j/(n) * height);
+                glNormal3d(sin((i+1)*M_PI/n * 2),cos((i+1)*M_PI/n * 2),0);
+                glVertex3d(r*sin((i+1)*M_PI/n * 2),r*cos((i+1)*M_PI/n * 2),j/(n) * height);
+                glNormal3d(sin((i+1)*M_PI/n * 2),cos((i+1)*M_PI/n * 2),0);
+                glVertex3d(r*sin((i+1)*M_PI/n * 2),r*cos((i+1)*M_PI/n * 2),(j+1)/(n) * height);
+                glNormal3d(sin((i)*M_PI/n * 2),cos((i)*M_PI/n * 2),0);
+                glVertex3d(r*sin(i*M_PI/n * 2),r*cos(i*M_PI/n * 2),(j+1)/(n) * height);
+                glEnd();
+            } else	{
+                glBegin(GL_POLYGON);
+                glNormal3d(sin((i+0.5)*M_PI/n * 2),cos((i+0.5)*M_PI/n * 2),0);
+                glVertex3d(r*sin(i*M_PI/n * 2),r*cos(i*M_PI/n * 2),j/(n) * height);
+                glVertex3d(r*sin((i+1)*M_PI/n * 2),r*cos((i+1)*M_PI/n * 2),j/(n) * height);
+                glVertex3d(r*sin((i+1)*M_PI/n * 2),r*cos((i+1)*M_PI/n * 2),(j+1)/(n) * height);
+                glVertex3d(r*sin(i*M_PI/n * 2),r*cos(i*M_PI/n * 2),(j+1)/(n) * height);
+                glEnd();
+            }
+    glPopMatrix();
+}
+
+void drawLeftPill() {
+    glPushMatrix();
+    glRotatef(-90, 0, 1, 0);
+    drawHalfSphere(1, mat_diffuse_blue, mat_emission_blue, mat_highlight_blue);
+    glPopMatrix();
+    glTranslatef(0.5, 0, 0);
+    drawCylinder(1, 1, mat_diffuse_blue, mat_emission_blue, mat_highlight_blue);
+}
+
+void drawRightPill() {
+    drawCylinder(1, 1, mat_diffuse_silver, mat_emission_silver, mat_highlight_silver);
+    glTranslatef(0.5, 0, 0);
+    glPushMatrix();
+    glRotatef(90, 0, 1, 0);
+    drawHalfSphere(1, mat_diffuse_silver, mat_emission_silver, mat_highlight_silver);
+    glPopMatrix();
+}
+
+void generateSmallParticlesParams() {
+    unsigned int time_ui = static_cast<unsigned int>(time(NULL));
+    srand(time_ui);
+    for (int i = 0; i < SMALL_PARTICLES_NUMBER; i++) {
+        float color = rand() % 2;
+        float x = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/2.0));
+        float y = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/3.0));
+        float z = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/2.0));
+        small_particle_params[i][0] = x;
+        small_particle_params[i][1] = y;
+        small_particle_params[i][2] = z;
+        small_particle_params[i][3] = color;
+    }
+}
+
+void drawSmallSpheres() {
+    glPushMatrix();
+    glTranslatef(-1.0, -2.5, 0);
+    for (int i = 0; i < SMALL_PARTICLES_NUMBER; i++) {
+        glPushMatrix();
+        float x = small_particle_params[i][0];
+        float y = small_particle_params[i][1];
+        float z = small_particle_params[i][2];
+        float color = small_particle_params[i][3];
+        glTranslatef(x, y, z);
+        if(color == 0) {
+            drawSphere(0.1, mat_diffuse_silver, mat_emission_silver, mat_highlight_silver);
+        } else {
+            drawSphere(0.1, mat_diffuse_blue, mat_emission_blue, mat_highlight_blue);
+        }
+        glPopMatrix();
+    }
+    glPopMatrix();
+}
 
 void display(void)
 {
@@ -123,20 +280,34 @@ void display(void)
 		glScalef(zoom,zoom,zoom);
 
 		switch (current_object) {
-		case 0:
-			drawSphere(1);
-			break;
-		case 1:
-			// draw your second primitive object here
-			break;
-		case 2:
-			// draw your first composite object here
-			break;
-		case 3:
-			// draw your second composite object here
-			break;
-		default:
-			break;
+            case 0:
+                drawSphere(1, mat_diffuse_blue, mat_emission_blue, mat_highlight_blue);
+                break;
+            case 1:
+                drawCylinder(1, 2, mat_diffuse_silver, mat_emission_silver, mat_highlight_silver);
+                break;
+            case 2:
+                glTranslatef(-1, 0, 0);
+                drawLeftPill();
+                glTranslatef(1, 0, 0);
+                drawRightPill();
+                break;
+            case 3:
+                glScalef(0.7,0.7,0.7);
+                // small particles
+                drawSmallSpheres();
+                
+                // left half
+                glTranslatef(-1.5, 0, 0);
+                drawLeftPill();
+                
+                // right half
+                glTranslatef(2, 0, 0);
+                drawRightPill();
+                
+                break;
+            default:
+                break;
 		};
 	glPopMatrix();
 	glutSwapBuffers ();
@@ -236,11 +407,14 @@ int main(int argc, char **argv)
 	cout << "Right mouse click and drag: zooming"<<endl;
 
 	glutInit(&argc, argv);
-	glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
 	glutInitWindowSize (600, 600);
 	glutInitWindowPosition (50, 50);
 	glutCreateWindow ("CS3241 Assignment 3");
 	glClearColor (1.0,1.0,1.0, 1.0);
+    
+    generateSmallParticlesParams();
+    
 	glutDisplayFunc(display);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
