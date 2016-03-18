@@ -233,6 +233,12 @@ void drawRightPill() {
     glPopMatrix();
 }
 
+void drawFullPill() {
+    drawLeftPill();
+    glTranslatef(1, 0, 0);
+    drawRightPill();
+}
+
 void generateSmallParticlesParams() {
     unsigned int time_ui = static_cast<unsigned int>(time(NULL));
     srand(time_ui);
@@ -287,12 +293,19 @@ void display(void)
                 drawCylinder(1, 2, mat_diffuse_silver, mat_emission_silver, mat_highlight_silver);
                 break;
             case 2:
-                glTranslatef(-1, 0, 0);
-                drawLeftPill();
-                glTranslatef(1, 0, 0);
-                drawRightPill();
+                // a sheet of pills
+                glScalef(0.3,0.3,0.3);
+                for (int i = -4; i < 4; i+=5) {
+                    for (int j = -4; j < 8; j+=3) {
+                        glPushMatrix();
+                        glTranslatef(i, j, 0);
+                        drawFullPill();
+                        glPopMatrix();
+                    }
+                }
                 break;
             case 3:
+                // a pill that has been spilled
                 glScalef(0.7,0.7,0.7);
                 // small particles
                 drawSmallSpheres();

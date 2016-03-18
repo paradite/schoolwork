@@ -22,8 +22,8 @@ main() - added generateSmallParticlesParams() to randomize positions for small p
 main() - added GLUT_MULTISAMPLE for anti aliasing
 
 Coolest thing:
-Composite object 1 looks like a real pill!
-Composite object 2 looks like a real pill that has been opened up!
+Composite object 1 is called "a sheet of pills".
+Composite object 2 is called "a pill that has been spilled".
 Small particles in Composite object 2 look like they have been spilled out.
 Metallic effect for the primitive objects
 
