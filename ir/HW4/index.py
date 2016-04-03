@@ -33,10 +33,10 @@ def generateWordDictAndDocLength(filedir):
             if(field == 'Abstract'):
                 abstract = stripPunctuationAndNonAscii(node.text)
         print('title', title, 'abstract', abstract)
-        titleList = [normalizeToken(j) for j in title.split(' ')]
+        titleList = [normalizeToken(j) for j in title.split()]
         wordsInTitle = set(titleList)
         # print(titleList)
-        abstractList = [normalizeToken(j) for j in abstract.split(' ')]
+        abstractList = [normalizeToken(j) for j in abstract.split()]
         wordsInAbstract = set(abstractList)
         # print(abstractList)
         wordsList = titleList + abstractList
