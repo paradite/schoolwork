@@ -43,10 +43,10 @@ def generateWordDictAndDocLength(filedir):
         words = set(wordsList)
         for word in wordsInTitle:
             wordCount = titleList.count(word)
-            wordDict[word].append([docID + '.TIT', wordCount])
+            wordDict[word].append([addZoneToID(docID, 'Title'), wordCount])
         for word in wordsInAbstract:
             wordCount = wordsList.count(word)
-            wordDict[word].append([docID + '.ABS', wordCount])
+            wordDict[word].append([addZoneToID(docID, 'Abstract'), wordCount])
         for word in words:
             wordCount = wordsList.count(word)
             # Add square of document weight of the term
@@ -70,7 +70,7 @@ def index():
             d.write("{} {}\n".format(k, len(v)))
             p.write(" ".join([str(e[0]) + "," + str(e[1]) for e in v]) + "\n")
         for length in docLengthList:
-            l.write(str(length) + "\n")
+            l.write("{} {}\n".format(str(length[0]), str(length[1])))
 
 def usage():
     print "usage: " + sys.argv[0] + " -i training-input-file -d output-dictionary-file -p output-posting-file"

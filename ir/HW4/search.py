@@ -7,24 +7,37 @@ import glob
 import math
 import time
 
+import xml.etree.ElementTree as ET
+
 from collections import defaultdict
 
 from nltk.tokenize import sent_tokenize
 from nltk.stem.porter import PorterStemmer
-from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 
 from util import *
 
 start_time = time.time()
 
 dictionary = {}
-docLengthList = [];
+docLengthDict = {};
 
 totalDocuments = 0
 maxDocID = 0
 
-def parse_query(query):
-    return [normalize_token(t) for t in query.split(' ')]
+RELEVANT_SCORE_THRESHOLD = 0.5
+QUERY_TITLE_WEIGHT = 1.0
+QUERY_DESCRIPTION_WEIGHT = 0.5
+
+def parseQueryXML(query_file):
+    tree = ET.parse(query_file)
+    root = tree.getroot()
+    title = stripPunctuationAndNonAscii(root.find('title').text)
+    description = stripPunctuationAndNonAscii(root.find('description').text)
+    titleTerms = [normalizeToken(j) for j in title.split()]
+    descriptionTerms = [normalizeToken(j) for j in description.split()]
+    print(titleTerms)
+    print(descriptionTerms)
+    return [titleTerms, descriptionTerms]
 
 def getQueryWeight(term, query):
     # print('for term ' + term + ' in query ' + str(query))
@@ -45,14 +58,11 @@ def getQueryWeight(term, query):
 
 def search():
     stemmer = PorterStemmer()
-    global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, maxDocID, docLengthList
+    global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, docLengthDict
 
     with open(posting_file_p) as postings:
-        totalDocuments, maxDocID = [int(x) for x in postings.readline().split(' ')]
+        totalDocuments = int(postings.readline())
         print("total documents: " + str(totalDocuments))
-        print("maxDocID: " + str(maxDocID))
-
-    results = []
 
     # store dictionary in memory
     with open(dictionary_file_d) as dicts:
@@ -62,52 +72,82 @@ def search():
 
     # store document length in memory
     with open(doc_length_file) as docLengths:
-        docLengthList = [0] * (maxDocID + 1)
-        for i, length in enumerate(docLengths):
-            docLengthList[i] = float(length)
+        for i, idLengthStr in enumerate(docLengths):
+            iD, length = idLengthStr.split()
+            docLengthDict[iD] = float(length)
 
-    with open(queries_file_q) as queries:
-        for query in queries:
-            print('==============')
-            terms = parse_query(query.strip('\r\n').strip('\n'))
-            queryWeightSqSum = 0
-            docScores = [0] * (maxDocID + 1)
-            for term in terms:
-                print(term)
-                if not term in dictionary:
-                    continue
-                queryWeight = getQueryWeight(term, terms)
-                queryWeightSqSum += queryWeight ** 2
-                postings = get_posting_list(int(dictionary[term][0]), posting_file_p)
-                for doc in postings:
-                    docID, rawtf = [int(i) for i in doc.split(',')]
-                    docWeight = getDocWeight(rawtf)
-                    docScores[docID] += docWeight * queryWeight
-                    # print(str(docID) + 
-                    #     " que w: " + "{0:.2f}".format(queryWeight) + 
-                    #     " score: " + "{0:.2f}".format(docScores[docID]))
-            # print(docScores)
-            # Normalization using sum of squares
-            for i, score in enumerate(docScores):
-                if score != 0 and queryWeightSqSum != 0 and docLengthList[i] != 0:
-                    # normalization of query length
-                    docScores[i] = score / (math.sqrt(queryWeightSqSum))
-                    # normalization of document length
-                    docScores[i] = docScores[i] / docLengthList[i]
-            # print(docScores)
-            # http://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
-            result = [i[0] for i in sorted(enumerate(docScores), key=lambda x:x[1], reverse=True)]
-            # remove non-existent document 0
-            result.remove(0)
-            result = result[:10]
-            # remove documents that have score zero
-            result[:] = [x for x in result if not docScores[x] == 0]
-            results.append(" ".join([str(x) for x in result]))
-            print('result length: ' + str(len(result)))
-            print(" ".join([str(x) for x in result]))
+    titleTerms, descriptionTerms = parseQueryXML(queries_file_q)
+    queryWeightSqSum = 0
+    docScores = {}
+    for term in titleTerms:
+        # print(term)
+        if not term in dictionary:
+            continue
+        queryWeight = getQueryWeight(term, titleTerms)
+        queryWeightSqSum += queryWeight ** 2
+        postings = getPostingList(int(dictionary[term][0]), posting_file_p)
+        for doc in postings:
+            docIDWithZone, rawtf = doc.split(',')[0], int(doc.split(',')[1])
+            docWeight = getDocWeight(rawtf)
+            if docIDWithZone in docScores:
+                docScores[docIDWithZone] += docWeight * queryWeight * QUERY_TITLE_WEIGHT
+            else:
+                docScores[docIDWithZone] = docWeight * queryWeight * QUERY_TITLE_WEIGHT
+
+    for term in descriptionTerms:
+        # print(term)
+        if not term in dictionary:
+            continue
+        queryWeight = getQueryWeight(term, descriptionTerms)
+        queryWeightSqSum += queryWeight ** 2
+        postings = getPostingList(int(dictionary[term][0]), posting_file_p)
+        for doc in postings:
+            docIDWithZone, rawtf = doc.split(',')[0], int(doc.split(',')[1])
+            docWeight = getDocWeight(rawtf)
+            if docIDWithZone in docScores:
+                docScores[docIDWithZone] += docWeight * queryWeight * QUERY_DESCRIPTION_WEIGHT
+            else:
+                docScores[docIDWithZone] = docWeight * queryWeight * QUERY_DESCRIPTION_WEIGHT
+            # print(str(docID) + 
+            #     " que w: " + "{0:.2f}".format(queryWeight) + 
+            #     " score: " + "{0:.2f}".format(docScores[docID]))
+    # print(docScores)
+    # Normalization using sum of squares
+    for docIDWithZone, score in docScores.iteritems():
+        if 'US7442313' in docIDWithZone:
+            print(docIDWithZone + ' ' + str(score))
+        docID = removeZoneFromID(docIDWithZone)
+        # print(score)
+        if score != 0 and queryWeightSqSum != 0 and docLengthDict[docID] != 0:
+            # normalization of query length
+            docScores[docIDWithZone] = score / (math.sqrt(queryWeightSqSum))
+            # normalization of document length
+            # docScores[docIDWithZone] = docScores[docIDWithZone] / docLengthDict[docID]
+    # print(docScores)
+
+    result = {}
+    resultList = []
+    for docIDWithZone, score in docScores.iteritems():
+        docID = removeZoneFromID(docIDWithZone)
+        if docID in result:
+            result[docID] += score
+        else:
+            result[docID] = score
+    
+    for docID, score in result.iteritems():
+        if 'US7442313' in docID:
+            print(docID + ' ' + str(score))
+        # print(docID + ' ' + str(score))
+        if score > RELEVANT_SCORE_THRESHOLD:
+            resultList.append(docID)
+
+    resultList = list(set(resultList))
+
+    print('results: ' + str(len(resultList)))
+    resultList = " ".join([str(x) for x in resultList])
 
     with open(output_file, "w") as o:
-        o.write('\n'.join(results))
+        o.write(resultList)
         o.write('\n')
     
 def usage():

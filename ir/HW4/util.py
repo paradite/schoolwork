@@ -9,7 +9,13 @@ from nltk.tokenize import sent_tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import XMLCorpusReader
 
-stemmer = PorterStemmer()   
+stemmer = PorterStemmer()
+
+def removeZoneFromID(id):
+    return id[:-4]
+
+def addZoneToID(id, zone):
+    return id + '.' + zone[0:3].upper()
 
 def stripPunctuationAndNonAscii(s):
     s = s.strip().encode('ascii', 'ignore')

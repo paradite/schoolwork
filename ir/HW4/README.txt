@@ -53,7 +53,7 @@ I suggest that I should be graded as follows:
 1. NLTK XMLCorpusReader
 http://www.nltk.org/_modules/nltk/corpus/reader/xmldocs.html#XMLCorpusReader.xml
 
-2. The ElementTree XML API
+2. Parsing XML and The ElementTree XML API
 https://docs.python.org/2/library/xml.etree.elementtree.html
 
 3. How to get indices of a sorted array in python
