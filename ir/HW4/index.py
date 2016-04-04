@@ -14,11 +14,12 @@ from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 from util import *
 from ordereddict import OrderedDict
 
-def generateWordDictAndDocLength(filedir):
+def generateWordDictAndDocInfo(filedir):
     ''' Generates dictionary of posting list and doc lengths'''
     corpus = createCorpusXML(filedir)
     docIds = getDocIds(filedir)
     docLengthList = [0] * len(docIds)
+    docInfoList = [0] * len(docIds)
     wordDict = defaultdict(list)
     print("Generating word dict and doc lengths")
     for i, docID in enumerate(docIds):
@@ -39,14 +40,14 @@ def generateWordDictAndDocLength(filedir):
             docLengthList[i] += getDocWeight(wordCount) ** 2
         # square root the sum of squares to get doc length
         docLengthList[i] = math.sqrt(docLengthList[i])
-        # save the actual doc ID
-        docLengthList[i] = [docID, docLengthList[i]]
-    return [OrderedDict(sorted(wordDict.items())), docLengthList]
+        # save the docID, its length and its terms
+        docInfoList[i] = [docID, docLengthList[i], ",".join(wordsList)]
+    return [OrderedDict(sorted(wordDict.items())), docInfoList]
 
 def index():
     global input_file_i, dictionary_file_d, posting_file_p
 
-    wordDict, docLengthList = generateWordDictAndDocLength(input_file_i)
+    wordDict, docInfoList = generateWordDictAndDocInfo(input_file_i)
     with open(dictionary_file_d, "w") as d, open(posting_file_p, "w") as p, open(doc_info_file, "w") as l:
         print("Writing to files")
         # write the number of documents at first line of the postings file
@@ -55,8 +56,8 @@ def index():
         for k, v in wordDict.items():
             d.write("{} {}\n".format(k, len(v)))
             p.write(" ".join([str(e[0]) + "," + str(e[1]) for e in v]) + "\n")
-        for length in docLengthList:
-            l.write("{} {}\n".format(str(length[0]), str(length[1])))
+        for docInfo in docInfoList:
+            l.write("{} {} {}\n".format(str(docInfo[0]), str(docInfo[1]), docInfo[2]))
 
 def usage():
     print "usage: " + sys.argv[0] + " -i training-input-file -d output-dictionary-file -p output-posting-file"

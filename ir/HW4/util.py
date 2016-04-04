@@ -9,6 +9,8 @@ from nltk.tokenize import sent_tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import XMLCorpusReader
 
+# file containing length and terms information of each patent document 
+# generated in indexing phase, used in searching phase
 doc_info_file = "docinfo.txt"
 stemmer = PorterStemmer()
 
@@ -36,6 +38,8 @@ def addZoneToID(id, zone):
 
 def stripPunctuationAndNonAscii(s):
     s = s.strip().encode('ascii', 'ignore')
+    # convert dash to space
+    s = s.replace('-', ' ')
     return s.translate(string.maketrans("",""), string.punctuation)
 
 def getDocWeight(rawtf):

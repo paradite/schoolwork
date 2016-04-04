@@ -58,3 +58,6 @@ https://docs.python.org/2/library/xml.etree.elementtree.html
 
 3. How to get indices of a sorted array in python
 # http://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
+
+4. NLTK stopwords
+http://www.nltk.org/book/ch02.html

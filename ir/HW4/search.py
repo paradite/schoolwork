@@ -16,18 +16,48 @@ from nltk.stem.porter import PorterStemmer
 
 from util import *
 
+# We use the nltk stopwords from http://www.nltk.org/book/ch02.html
+stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours',
+'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers',
+'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves',
+'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are',
+'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does',
+'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until',
+'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into',
+'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down',
+'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here',
+'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
+'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
+
+# stopwords specific to patents
+# stopwords.extend(['method', 'system', 'apparatus'])
+stopwords.extend(['one'])
+stopwords.extend(['step'])
+stopwords.extend(['method'])
+stopwords.extend(['apparatus'])
+stopwords.extend(['use'])
+stopwords.extend(['also'])
+stopwords.extend(['first'])
+stopwords.extend(['example'])
+
+stopwords = [normalizeToken(word) for word in stopwords]
+
 start_time = time.time()
 
 dictionary = {}
 docLengthDict = {};
 
-# nonDescriptiveTerms = ['Relevant', 'documents', 'will', 'describe']
-nonDescriptiveTerms = []
+# Store terms of each patent in memory for convenience since the corpus is small
+docTermsDict = {};
 
 totalDocuments = 0
 maxDocID = 0
 
-RELEVANT_SCORE_THRESHOLD = 0.09
+RELEVANT_SCORE_THRESHOLD_INIT = 0.10
+TOP_LIST_LENGTH = 40
+RELEVANT_SCORE_THRESHOLD_EXPANDED = 1.16
+NO_OF_EXPANDED_QUERIES = 100
 QUERY_TITLE_WEIGHT = 1.0
 QUERY_DESCRIPTION_WEIGHT = 1.0
 
@@ -45,26 +75,30 @@ def parseQueryXML(query_file):
 def getQueryWeight(term, query):
         # return 0
     # print('for term ' + term + ' in query ' + str(query))
+    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
+    tf = getTf(term, query)
+    idf = getIdf(term)
+    # print('term: ' + term + ', tf: ' + str(tf) + ' , idf: ' + str(idf))
+    return tf * idf
+    # return 1.0
+
+def getTf(term, query):
     rawtf = query.count(term)
     tf = 1
     if rawtf > 0:
         tf = 1 + math.log(rawtf, 10)
-    # print('rawtf: ' + str(rawtf) + ' , tf: ' + str(tf))
+    return tf
+
+def getIdf(term):
     df = 0
     idf = 0
     if term in dictionary:
         df = int(dictionary[term][1])
         if df > 0:
             idf = math.log(totalDocuments / df, 10)
-    # print('df: ' + str(df) + ' , idf: ' + str(idf))
-    if term in nonDescriptiveTerms:
-        # print('term: ' + term + '\t tfidf: ' + str(tf * idf))
-        # print('Assigning no weight to non-descriptive term ' + term)
-        return 0
-    return tf * idf
-    # return 1.0
+    return idf
 
-def executeQuery(titleTerms, descriptionTerms):
+def executeQuery(titleTerms, descriptionTerms, scoreThreshold):
     queryWeightSqSum = 0
     docScores = {}
     for term in titleTerms:
@@ -129,10 +163,10 @@ def executeQuery(titleTerms, descriptionTerms):
         # if 'US7442313' in docID:
         #     print(docID + ' ' + str(score))
         # print(docID + ' ' + str(score))
-        if score > RELEVANT_SCORE_THRESHOLD:
+        if score > scoreThreshold:
             # print(docID + ' ' + str(score))
             resultList.append(docID)
-            if len(topList) < 20:
+            if len(topList) < TOP_LIST_LENGTH:
                 topList.append([docID, score])
                 if score < minTopScore:
                     minTopScore = score
@@ -155,7 +189,6 @@ def executeQuery(titleTerms, descriptionTerms):
 
 def search():
     global queries_file_q, dictionary_file_d, posting_file_p, output_file, totalDocuments, docLengthDict, nonDescriptiveTerms
-    nonDescriptiveTerms = [normalizeToken(t) for t in nonDescriptiveTerms]
 
     with open(posting_file_p) as postings:
         totalDocuments = int(postings.readline())
@@ -169,20 +202,57 @@ def search():
             dictionary[term] = (i + 1, freq)
 
     # store document length in memory
-    with open(doc_info_file) as docLengths:
-        for i, idLengthStr in enumerate(docLengths):
-            iD, length = idLengthStr.split()
+    with open(doc_info_file) as docInfos:
+        for i, idInfoStr in enumerate(docInfos):
+            iD, length, termsStr = idInfoStr.split()
             docLengthDict[iD] = float(length)
+            docTermsDict[iD] = termsStr.split(',')
 
     titleTerms, descriptionTerms = parseQueryXML(queries_file_q)
 
-    topList, resultList = executeQuery(titleTerms, descriptionTerms)
+    topList, resultList = executeQuery(titleTerms, descriptionTerms, RELEVANT_SCORE_THRESHOLD_INIT)
 
     # print(topList)
-    # for entry in topList:
-    #     titleList, abstractList, wordsList = parseXML(corpus, docID)
+    
+    # Query expansion using top results from first query
+    expandedQuery = []
+    for entry in topList:
+        docID = entry[0]
+        if docID in docTermsDict:
+            # print(docTermsDict[docID])
+            expandedQuery.extend(docTermsDict[docID])
+        else:
+            print('document terms not available')
+    expandedQuery = sorted(expandedQuery, key=str.lower)
+    # print(expandedQuery)
+    expandedQuerySet = set(expandedQuery)
+    expandedQuerySet = sorted(expandedQuerySet, key=str.lower)
+    for i, term in enumerate(expandedQuerySet):
+        if not term in dictionary:
+            continue
+        # We use tf instead of tf-idf for weight of each term because 
+        # tf-idf gives higher scores to rare words which are not useful
+        queryWeight = getTf(term, expandedQuery)
+        # print(queryWeight)
+        expandedQuerySet[i] = [term, queryWeight]
 
-    # print('results: ' + str(len(resultList)))
+    # Using tf alone gives us a lot of stopwords, so we remove them
+    # with the help of nltk stopwords
+    expandedQuerySet = [t for t in expandedQuerySet if t[0] not in stopwords]
+    sortedQuery = sorted(expandedQuerySet, key=lambda x:x[1], reverse=True)
+    topQuery = [q[0] for q in sortedQuery[:NO_OF_EXPANDED_QUERIES]]
+    print(topQuery)
+    # Use back the original number of terms instead of using one for each term
+    # to better reflect term frequency
+    topQueryWithRepeats = [q for q in expandedQuery if q in topQuery]
+    # print(topQueryWithRepeats)
+
+    # Execute second round of search using expanded query
+    # Expanded queries all have the same the weight as descriptions
+    topList, resultList = executeQuery([], topQueryWithRepeats, RELEVANT_SCORE_THRESHOLD_EXPANDED)
+    # print(topList)
+
+    print('results: ' + str(len(resultList)))
     resultList = " ".join([str(x) for x in resultList])
 
     with open(output_file, "w") as o:

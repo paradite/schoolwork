@@ -35,7 +35,7 @@ def check():
             if neg in resultList:
                 negativeNo += 1
     print("------")
-    print(result_file)
+    # print(result_file)
     # print('positive: ' + str(positiveNo) + '/' + str(totalPositiveNo))
     # print('negative: ' + str(negativeNo) + '/' + str(totalNegativeNo))
     if len(resultList) == 0:
