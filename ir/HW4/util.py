@@ -11,6 +11,22 @@ from nltk.corpus import XMLCorpusReader
 
 stemmer = PorterStemmer()
 
+def parseXML(corpus, docID):
+    xmlNodeList = [j for j in corpus.xml(docID)]
+    title = ''
+    abstract = ''
+    for node in xmlNodeList:
+        field = node.attrib.get('name')
+        if(field == 'Title'):
+            title = stripPunctuationAndNonAscii(node.text)
+        if(field == 'Abstract'):
+            abstract = stripPunctuationAndNonAscii(node.text)
+    print('title', title, 'abstract', abstract)
+    titleList = [normalizeToken(j) for j in title.split()]
+    abstractList = [normalizeToken(j) for j in abstract.split()]
+    wordsList = titleList + abstractList
+    return [titleList, abstractList, wordsList]
+
 def removeZoneFromID(id):
     return id[:-4]
 

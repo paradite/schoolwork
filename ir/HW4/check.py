@@ -34,14 +34,24 @@ def check():
             totalNegativeNo += 1
             if neg in resultList:
                 negativeNo += 1
-
-    print('positive: ' + str(positiveNo) + '/' + str(totalPositiveNo))
-    print('negative: ' + str(negativeNo) + '/' + str(totalNegativeNo))
-    precision = positiveNo / len(resultList)
-    print('precision: ' + str(positiveNo) + '/' + str(len(resultList)) + ' ' + str(precision))
-    recall = positiveNo / totalPositiveNo
-    print('recall: ' + str(positiveNo) + '/' + str(totalPositiveNo) + ' ' + str(recall))
-    print('F2: ' + str((5 * precision * recall)/(4 * precision + recall)))
+    print("------")
+    print(result_file)
+    # print('positive: ' + str(positiveNo) + '/' + str(totalPositiveNo))
+    # print('negative: ' + str(negativeNo) + '/' + str(totalNegativeNo))
+    if len(resultList) == 0:
+        precision = 0
+    else:
+        precision = positiveNo / len(resultList)
+    if totalPositiveNo == 0:
+        recall = 0
+    else:
+        recall = positiveNo / totalPositiveNo
+    if recall == 0 and precision == 0:
+        f2 = 0
+    else:
+        f2 = (5 * precision * recall)/(4 * precision + recall)
+    print('precision: ' + str(precision) + '\trecall: ' + str(recall))
+    print('F2: ' + str(f2))
     
 def usage():
     print("usage: " + sys.argv[0] + " -p positive-file -n negative-file -r result-file")

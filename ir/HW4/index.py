@@ -22,32 +22,18 @@ def generateWordDictAndDocLength(filedir):
     wordDict = defaultdict(list)
     print("Generating word dict and doc lengths")
     for i, docID in enumerate(docIds):
-        xmlNodeList = [j for j in corpus.xml(docID)]
+        titleList, abstractList, wordsList = parseXML(corpus, docID)
         docID = docID.replace('.xml', '')
-        title = ''
-        abstract = ''
-        for node in xmlNodeList:
-            field = node.attrib.get('name')
-            if(field == 'Title'):
-                title = stripPunctuationAndNonAscii(node.text)
-            if(field == 'Abstract'):
-                abstract = stripPunctuationAndNonAscii(node.text)
-        print('title', title, 'abstract', abstract)
-        titleList = [normalizeToken(j) for j in title.split()]
-        wordsInTitle = set(titleList)
-        # print(titleList)
-        abstractList = [normalizeToken(j) for j in abstract.split()]
-        wordsInAbstract = set(abstractList)
-        # print(abstractList)
-        wordsList = titleList + abstractList
-        words = set(wordsList)
-        for word in wordsInTitle:
+        titleSet = set(titleList)
+        abstractSet = set(abstractList)
+        wordsSet = set(wordsList)
+        for word in titleSet:
             wordCount = titleList.count(word)
             wordDict[word].append([addZoneToID(docID, 'Title'), wordCount])
-        for word in wordsInAbstract:
+        for word in abstractSet:
             wordCount = wordsList.count(word)
             wordDict[word].append([addZoneToID(docID, 'Abstract'), wordCount])
-        for word in words:
+        for word in wordsSet:
             wordCount = wordsList.count(word)
             # Add square of document weight of the term
             docLengthList[i] += getDocWeight(wordCount) ** 2
