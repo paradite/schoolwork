@@ -169,7 +169,7 @@ def search():
             dictionary[term] = (i + 1, freq)
 
     # store document length in memory
-    with open(doc_length_file) as docLengths:
+    with open(doc_info_file) as docLengths:
         for i, idLengthStr in enumerate(docLengths):
             iD, length = idLengthStr.split()
             docLengthDict[iD] = float(length)
@@ -179,8 +179,8 @@ def search():
     topList, resultList = executeQuery(titleTerms, descriptionTerms)
 
     # print(topList)
-    for entry in topList:
-        titleList, abstractList, wordsList = parseXML(corpus, docID)
+    # for entry in topList:
+    #     titleList, abstractList, wordsList = parseXML(corpus, docID)
 
     # print('results: ' + str(len(resultList)))
     resultList = " ".join([str(x) for x in resultList])
@@ -194,7 +194,6 @@ def usage():
     + " -o output-file-of-results")
 
 queries_file_i = dictionary_file_d = posting_file_p = output_file = None
-doc_length_file = "doclength.txt"
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'q:d:p:o:')
 except getopt.GetoptError, err:

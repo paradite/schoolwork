@@ -9,6 +9,7 @@ from nltk.tokenize import sent_tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import XMLCorpusReader
 
+doc_info_file = "docinfo.txt"
 stemmer = PorterStemmer()
 
 def parseXML(corpus, docID):

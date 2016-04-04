@@ -47,7 +47,7 @@ def index():
     global input_file_i, dictionary_file_d, posting_file_p
 
     wordDict, docLengthList = generateWordDictAndDocLength(input_file_i)
-    with open(dictionary_file_d, "w") as d, open(posting_file_p, "w") as p, open(doc_length_file, "w") as l:
+    with open(dictionary_file_d, "w") as d, open(posting_file_p, "w") as p, open(doc_info_file, "w") as l:
         print("Writing to files")
         # write the number of documents at first line of the postings file
         docIDs = getDocIds(input_file_i)
@@ -62,8 +62,6 @@ def usage():
     print "usage: " + sys.argv[0] + " -i training-input-file -d output-dictionary-file -p output-posting-file"
 
 input_file_i = dictionary_file_d = posting_file_p = None
-# File name for generated document lengths
-doc_length_file = "doclength.txt"
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
 except getopt.GetoptError, err:
