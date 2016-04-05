@@ -12,6 +12,7 @@ def check():
     resultList = []
     positiveNo = 0
     negativeNo = 0
+    unknownNo = 0
     totalPositiveNo = 0
     totalNegativeNo = 0
     global positive_file, negative_file, result_file
@@ -34,14 +35,17 @@ def check():
             totalNegativeNo += 1
             if neg in resultList:
                 negativeNo += 1
+            else:
+                unknownNo += 1
     print("------")
     # print(result_file)
+    print('positive: ' + str(positiveNo) + '/' + str(totalPositiveNo) + ' negative: ' + str(negativeNo) + '/' + str(totalNegativeNo))
     # print('positive: ' + str(positiveNo) + '/' + str(totalPositiveNo))
     # print('negative: ' + str(negativeNo) + '/' + str(totalNegativeNo))
     if len(resultList) == 0:
         precision = 0
     else:
-        precision = positiveNo / len(resultList)
+        precision = positiveNo / (positiveNo + negativeNo)
     if totalPositiveNo == 0:
         recall = 0
     else:

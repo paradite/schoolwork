@@ -35,8 +35,10 @@ stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you',
 stopwords.extend(['one'])
 stopwords.extend(['step'])
 stopwords.extend(['method'])
+stopwords.extend(['system'])
 stopwords.extend(['apparatus'])
 stopwords.extend(['use'])
+stopwords.extend(['may'])
 stopwords.extend(['also'])
 stopwords.extend(['first'])
 stopwords.extend(['example'])
@@ -55,9 +57,9 @@ totalDocuments = 0
 maxDocID = 0
 
 RELEVANT_SCORE_THRESHOLD_INIT = 0.10
-TOP_LIST_LENGTH = 40
-RELEVANT_SCORE_THRESHOLD_EXPANDED = 0.1
-NO_OF_EXPANDED_QUERIES = 100
+TOP_LIST_LENGTH = 6
+RELEVANT_SCORE_THRESHOLD_EXPANDED = 0.15
+NO_OF_EXPANDED_QUERIES = 20
 QUERY_TITLE_WEIGHT = 1.0
 QUERY_DESCRIPTION_WEIGHT = 1.0
 
@@ -241,7 +243,7 @@ def search():
     expandedQuerySet = [t for t in expandedQuerySet if t[0] not in stopwords]
     sortedQuery = sorted(expandedQuerySet, key=lambda x:x[1], reverse=True)
     topQuery = [q[0] for q in sortedQuery[:NO_OF_EXPANDED_QUERIES]]
-    print(topQuery)
+    # print(topQuery)
     # Use back the original number of terms instead of using one for each term
     # to better reflect term frequency
     topQueryWithRepeats = [q for q in expandedQuery if q in topQuery]
