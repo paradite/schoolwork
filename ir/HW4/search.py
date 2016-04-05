@@ -167,7 +167,7 @@ def executeQuery(titleTerms, descriptionTerms, scoreThreshold):
         # print(docID + ' ' + str(score))
         if score > scoreThreshold:
             # print(docID + ' ' + str(score))
-            resultList.append(docID)
+            resultList.append([docID, score])
             if len(topList) < TOP_LIST_LENGTH:
                 topList.append([docID, score])
                 if score < minTopScore:
@@ -186,7 +186,9 @@ def executeQuery(titleTerms, descriptionTerms, scoreThreshold):
 
     topList = sorted(topList, key=lambda x:x[1], reverse=True)
 
-    resultList = list(set(resultList))
+    resultList = sorted(resultList, key=lambda x:x[1], reverse=True)
+    resultList = [x[0] for x in resultList]
+
     return [topList, resultList] 
 
 def search():
