@@ -30,8 +30,7 @@ stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you',
 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
 
-# stopwords specific to patents
-# stopwords.extend(['method', 'system', 'apparatus'])
+# customized stopwords specific to patents
 stopwords.extend(['one'])
 stopwords.extend(['step'])
 stopwords.extend(['method'])
@@ -56,10 +55,25 @@ docTermsDict = {};
 totalDocuments = 0
 maxDocID = 0
 
+# Relevant socre threshold for first round of search, 
+# to avoid using documents with very low relevance as
+# basis for query expansion
 RELEVANT_SCORE_THRESHOLD_INIT = 0.10
+
+# Number of top documents in result of first round of
+# searhc to form basis for query expansion
 TOP_LIST_LENGTH = 6
-RELEVANT_SCORE_THRESHOLD_EXPANDED = 0
+
+# Number of distincitive top terms to select for expanded query
+# The actual expanded query retains the number of occurances of 
+# the terms in the top documents
 NO_OF_EXPANDED_QUERIES = 20
+
+# No not set threshold for second round of search, return all 
+# relevant documents
+RELEVANT_SCORE_THRESHOLD_EXPANDED = 0
+
+# Assign equal weights to query title and query description
 QUERY_TITLE_WEIGHT = 1.0
 QUERY_DESCRIPTION_WEIGHT = 1.0
 
@@ -138,8 +152,6 @@ def executeQuery(titleTerms, descriptionTerms, scoreThreshold):
     # print(docScores)
     # Normalization using sum of squares
     for docIDWithZone, score in docScores.iteritems():
-        # if 'US7442313' in docIDWithZone:
-        #     print(docIDWithZone + ' ' + str(score))
         docID = removeZoneFromID(docIDWithZone)
         # print(score)
         if score != 0 and queryWeightSqSum != 0 and docLengthDict[docID] != 0:
@@ -156,14 +168,14 @@ def executeQuery(titleTerms, descriptionTerms, scoreThreshold):
     maxTopScore = 0
     for docIDWithZone, score in docScores.iteritems():
         docID = removeZoneFromID(docIDWithZone)
+        # final relevant score is the algebric sum of score
+        # of title and abstract fields in a patent document
         if docID in result:
             result[docID] += score
         else:
             result[docID] = score
     
     for docID, score in result.iteritems():
-        # if 'US7442313' in docID:
-        #     print(docID + ' ' + str(score))
         # print(docID + ' ' + str(score))
         if score > scoreThreshold:
             # print(docID + ' ' + str(score))
@@ -241,7 +253,7 @@ def search():
         expandedQuerySet[i] = [term, queryWeight]
 
     # Using tf alone gives us a lot of stopwords, so we remove them
-    # with the help of nltk stopwords
+    # with the help of nltk stopwords and customized patent stopwords
     expandedQuerySet = [t for t in expandedQuerySet if t[0] not in stopwords]
     sortedQuery = sorted(expandedQuerySet, key=lambda x:x[1], reverse=True)
     topQuery = [q[0] for q in sortedQuery[:NO_OF_EXPANDED_QUERIES]]
