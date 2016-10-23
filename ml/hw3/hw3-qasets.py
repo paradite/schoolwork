@@ -3,6 +3,7 @@ import numpy.random as nr
 
 from sklearn.svm import SVC
 from sklearn import preprocessing
+from sklearn.model_selection import cross_val_score
 
 import itertools
 import math
@@ -41,6 +42,10 @@ def parseLineTraining(line):
 dataTrain = []
 labelTrain = []
 
+# for testing/debugging purposes only
+dataTrainRawFiltered = []
+dataTrainRaw = []
+
 def getVectorFromWord(word):
     if word in w2vModel:
         return w2vModel[word]
@@ -63,6 +68,8 @@ def addTrainingData(questionFacts, questionWords, answers):
     # print('-------')
     vectorWords = [getVectorFromWord(w) for w in getRelevantFacts(questionFacts, questionWords)]
     dataTrain.append(np.sum(vectorWords, axis=0))
+    dataTrainRawFiltered.append(getRelevantFacts(questionFacts, questionWords))
+    dataTrainRaw.append(questionFacts)
     labelTrain.append(answers)
 
 def loadTrainingData(f):
@@ -73,7 +80,7 @@ def loadTrainingData(f):
         if index == '1':
             existingFacts = []
             existingFactsWithQuestions = []
-        elif isQuestion:
+        if isQuestion:
             existingFactsWithQuestions.append(words)
             questionFacts = existingFacts[:]
             questionFacts.append(words)
@@ -90,6 +97,12 @@ print('train data size: ' + str(len(dataTrain)))
 print('--------------------')
 
 # Learning code
+
+def svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree):
+    clf = SVC(cost, kernel, degree, gamma)
+    scores = cross_val_score(clf, dataTrain, labelTrain, cv=5)
+    print(scores)
+
 def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     # print(labelTrain)
     # labelTrain = le.transform(labelTrain)
@@ -99,6 +112,12 @@ def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     clf.fit(dataTrain, labelTrain)
     return (clf, np.sum(clf.n_support_))
 
+def printWrongPredict(idx, predicted):
+    print(dataTrainRaw[idx])
+    print(dataTrainRawFiltered[idx])
+    print('X: ' + predicted + ' Y: ' + labelTrain[idx])
+    print('------')
+
 def svmPredict(dataTrain, labelTrain, svmModel):  
     # labelTrain = le.transform(labelTrain)  
     err_sum = 0
@@ -107,6 +126,7 @@ def svmPredict(dataTrain, labelTrain, svmModel):
     for idx in range(N):
         if predicted[idx] != labelTrain[idx]:
             err_sum += 1
+            printWrongPredict(idx, predicted[idx])
     err_ave = (1 / N) * err_sum
     return 1 - err_ave
 
@@ -196,15 +216,17 @@ degree = 3
 gamma = 'auto'
 
 # train your svm
-svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+# svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
 
 # test on the training data
-trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
+# trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
 
 # test on your test data
-testAccuracy = 0
+# testAccuracy = 0
 
-printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
+# printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
 
-with open('test.txt', 'r') as fTest:
-    svmTest(fTest, svmModel)
+svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
+
+# with open('test.txt', 'r') as fTest:
+#     svmTest(fTest, svmModel)
