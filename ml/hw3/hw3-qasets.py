@@ -46,27 +46,31 @@ labelTrain = []
 dataTrainRawFiltered = []
 dataTrainRaw = []
 
-def getVectorFromWord(word):
+def getVectorFromWord(idx, word):
     if word in w2vModel:
-        return w2vModel[word]
+        # assign weight according to idx in the facts
+        return w2vModel[word] * math.pow(idx + 1, 2)
     else:
         # out of dictionary words have zero weights
         return np.zeros(w2vDimension)
+
+def getVectorFromWords(idx, words):
+    return [getVectorFromWord(idx, w) for w in words]
 
 def isFactRelevant(fact, questionWords):
     return len(set.intersection(set(fact), set(questionWords))) > 0
 
 def getRelevantFacts(existingFacts, questionWords):
-    relevantFacts = [i for i in existingFacts if isFactRelevant(i, questionWords)]
-    # flatten list
-    return list(itertools.chain.from_iterable(relevantFacts))
+    return [i for i in existingFacts if isFactRelevant(i, questionWords)]
 
 def addTrainingData(questionFacts, questionWords, answers):
     # print(questionFacts)
     # print(questionWords)
     # print(getRelevantFacts(questionFacts, questionWords))
     # print('-------')
-    vectorWords = [getVectorFromWord(w) for w in getRelevantFacts(questionFacts, questionWords)]
+    vectorWords = [getVectorFromWords(idx, w) for idx, w in enumerate(getRelevantFacts(questionFacts, questionWords))]
+    # flatten list
+    vectorWords = list(itertools.chain.from_iterable(vectorWords))
     dataTrain.append(np.sum(vectorWords, axis=0))
     dataTrainRawFiltered.append(getRelevantFacts(questionFacts, questionWords))
     dataTrainRaw.append(questionFacts)
@@ -102,6 +106,7 @@ def svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree):
     clf = SVC(cost, kernel, degree, gamma)
     scores = cross_val_score(clf, dataTrain, labelTrain, cv=5)
     print(scores)
+    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
 
 def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     # print(labelTrain)
@@ -144,11 +149,17 @@ def parseLineTesting(line):
     return (index, isQuestion, words)
 
 def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmModel):
-    vectorWords = [getVectorFromWord(w) for w in getRelevantFacts(questionFacts, questionWords)]
+    vectorWords = [getVectorFromWords(idx, w) for idx, w in enumerate(getRelevantFacts(questionFacts, questionWords))]
+    # flatten list
+    vectorWords = list(itertools.chain.from_iterable(vectorWords))
     # flatten existing facts list
     flattenedExistingFacts = list(itertools.chain.from_iterable(existingFactsWithQuestions))
     answerStr = svmModel.predict(np.sum(vectorWords, axis=0).reshape(1,-1))
+    # for debugging purposes
+    # print(questionFacts)
+    # print(getRelevantFacts(questionFacts, questionWords))
     # print(answerStr)
+
     answers = answerStr[0].split(',')
     if len(answers) == 1:
         answer = answers[0]
@@ -175,7 +186,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-' + kernel + '-filter.txt', 'w')
+    fo = open('test-output-' + kernel + '-filter-pow-weight.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -215,18 +226,18 @@ kernel='rbf'
 degree = 3
 gamma = 'auto'
 
+# Cross validate performance on training data set
+# svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
+
 # train your svm
-# svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+print('completed training')
 
 # test on the training data
 # trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
-
-# test on your test data
 # testAccuracy = 0
-
 # printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
 
-svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
-
-# with open('test.txt', 'r') as fTest:
-#     svmTest(fTest, svmModel)
+# Print test data set result
+with open('test.txt', 'r') as fTest:
+    svmTest(fTest, svmModel)
