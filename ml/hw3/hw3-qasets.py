@@ -46,16 +46,17 @@ labelTrain = []
 dataTrainRawFiltered = []
 dataTrainRaw = []
 
-def getVectorFromWord(idx, word):
+def getVectorFromWord(idx, widx, word):
     if word in w2vModel:
         # assign weight according to idx in the facts
-        return w2vModel[word] * (idx + 1)
+        # assign weight according to word position in sentence
+        return w2vModel[word] * (idx + 1) * (widx + 1)
     else:
         # out of dictionary words have zero weights
         return np.zeros(w2vDimension)
 
 def getVectorFromWords(idx, words):
-    return [getVectorFromWord(idx, w) for w in words]
+    return [getVectorFromWord(idx, widx, w) for widx, w in enumerate(words)]
 
 def isFactRelevant(fact, questionWords):
     return len(set.intersection(set(fact), set(questionWords))) > 0
@@ -186,7 +187,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-' + kernel + '-filter-linear-weight.txt', 'w')
+    fo = open('test-output-' + kernel + '-filter-linear-weight-linear-word-weight.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -226,18 +227,18 @@ kernel='rbf'
 degree = 3
 gamma = 'auto'
 
-# Cross validate performance on training data set
-# svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
+validate = True
+outputTest = False
 
-# train your svm
-svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
-print('completed training')
+if validate:
+    # Cross validate performance on training data set
+    svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
 
-# test on the training data
-# trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
-# testAccuracy = 0
-# printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
+if outputTest:
+    # train your svm
+    svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+    print('completed training')
 
-# Print test data set result
-with open('test.txt', 'r') as fTest:
-    svmTest(fTest, svmModel)
+    # Print test data set result
+    with open('test.txt', 'r') as fTest:
+        svmTest(fTest, svmModel)
