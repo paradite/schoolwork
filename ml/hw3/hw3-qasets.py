@@ -49,7 +49,7 @@ dataTrainRaw = []
 def getVectorFromWord(idx, word):
     if word in w2vModel:
         # assign weight according to idx in the facts
-        return w2vModel[word] * math.pow(idx + 1, 2)
+        return w2vModel[word] * (idx + 1)
     else:
         # out of dictionary words have zero weights
         return np.zeros(w2vDimension)
@@ -186,7 +186,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-' + kernel + '-filter-pow-weight.txt', 'w')
+    fo = open('test-output-' + kernel + '-filter-linear-weight.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
