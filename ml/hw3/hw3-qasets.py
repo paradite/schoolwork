@@ -31,6 +31,7 @@ def generateTokens(f):
     for line in f:
         index, isQuestion, words, answers = parseLineTraining(line)
         for word in words:
+            word = word.lower()
             if word not in globalDict:
                 globalDict[word] = tokenDimension
                 print('added ' + word + ' into index at ' + str(tokenDimension))
@@ -287,7 +288,7 @@ gamma = 0.001
 parameterSelection = False
 validate = True
 testTraining = False
-outputTest = False
+outputTest = True
 
 if __name__ == '__main__':
     if parameterSelection:
