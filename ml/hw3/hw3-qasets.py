@@ -4,6 +4,8 @@ import numpy.random as nr
 from sklearn.svm import SVC
 from sklearn import preprocessing
 from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.multiclass import OneVsRestClassifier
 
 from nltk.corpus import stopwords
 
@@ -46,18 +48,22 @@ def parseLineTraining(line):
     line = line[1:]
     words = []
     answerStr = ''
+    answers = []
     for x in line:
         tokens = x.split('\t')
         if len(tokens) == 2:
             questionStr = tokens[0]
             answerStr = tokens[1]
             words.append(re.sub(r'[^\w]', '', questionStr))
-            # answers = answerStr.split(',')
+            if answerStr == 'nothing':
+                answers = []
+            else:
+                answers = answerStr.split(',')
             # print(words)
             # print(answers)
         else:
             words.append(re.sub(r'[^\w]', '', x))
-    return (index, isQuestion, words, answerStr)
+    return (index, isQuestion, words, answers)
 
 def parseLineTesting(line):
     isQuestion = (line.find("?") != -1)
@@ -65,7 +71,6 @@ def parseLineTesting(line):
     index = line[0]
     line = line[1:]
     words = []
-    answerStr = ''
     for x in line:
         words.append(re.sub(r'[^\w]', '', x))
     return (index, isQuestion, words)
@@ -93,8 +98,8 @@ def getVectorFromWord(idx, widx, word):
         # assign weight according to word position in sentence
         # print('word: ' + word + ' word idx: ' + str(widx) + ' sent idx: ' + str(idx))
         w2vVector = w2vModel[word] * (widx + 1) * (idx + 1)
-    # return np.concatenate([w2vVector, tokenVector] , axis=0)
-    return tokenVector
+    return np.concatenate([w2vVector, tokenVector] , axis=0)
+    # return tokenVector
 
 def getVectorFromWords(idx, words):
     # print(words)
@@ -142,6 +147,7 @@ def addTrainingData(questionFacts, questionWords, answers):
     labelTrain.append(answers)
 
 def loadTrainingData(f):
+    global labelTrain
     existingFacts = []
     existingFactsWithQuestions = []
     for line in f:
@@ -157,6 +163,10 @@ def loadTrainingData(f):
         else:
             existingFactsWithQuestions.append(words)
             existingFacts.append(words)
+    # transform y into multilabel
+    print(labelTrain)
+    labelTrain = MultiLabelBinarizer().fit_transform(labelTrain)
+    print(labelTrain)
 
 with open('train.txt', 'r') as f:
     generateTokens(f)
@@ -171,7 +181,7 @@ print('--------------------')
 # Learning code
 
 def svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree):
-    clf = SVC(cost, kernel, degree, gamma, cache_size=800)
+    clf = OneVsRestClassifier(SVC(cost, kernel, degree, gamma, cache_size=800))
     print('input dimension: ' + str(dataTrain[0].shape))
     scores = cross_val_score(clf, dataTrain, labelTrain, cv=5, n_jobs=4, verbose=1)
     print(scores)
@@ -183,12 +193,12 @@ def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     # print(labelTrain)
     # clf = SVC(cost, kernel, degree, gamma, class_weight="balanced")
     print('input dimension: ' + str(dataTrain[0].shape))
-    clf = SVC(cost, kernel, degree, gamma, cache_size=800)
+    clf = OneVsRestClassifier(SVC(cost, kernel, degree, gamma, cache_size=800))
     clf.fit(dataTrain, labelTrain)
     return (clf, np.sum(clf.n_support_))
 
 def printWrongPredict(idx, predicted):
-    print(dataTrainRaw[idx])
+    # print(dataTrainRaw[idx])
     print(dataTrainRawFiltered[idx])
     print('X: ' + predicted + ' Y: ' + labelTrain[idx])
     print('------')
@@ -201,7 +211,7 @@ def svmPredict(dataTrain, labelTrain, svmModel):
     for idx in range(N):
         if predicted[idx] != labelTrain[idx]:
             err_sum += 1
-            # printWrongPredict(idx, predicted[idx])
+            printWrongPredict(idx, predicted[idx])
     err_ave = (1 / N) * err_sum
     return 1 - err_ave
 
@@ -213,8 +223,9 @@ def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmMo
     answerStr = svmModel.predict([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
     # for debugging purposes
     # print(questionFacts)
-    # print(getRelevantFacts(questionFacts, questionWords))
-    # print(answerStr)
+    print(' '.join(itertools.chain.from_iterable(getRelevantFacts(questionFacts, questionWords))))
+    print(' '.join(questionWords))
+    print(answerStr[0])
 
     answers = answerStr[0].split(',')
     if len(answers) == 1:
@@ -227,8 +238,8 @@ def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmMo
             # print('\n')
             return str(flattenedExistingFacts.index(answer) + 1)
         else:
-            print('cannot find predicted word ' + answer + ' in facts:\n')
-            print(flattenedExistingFacts)
+            # print('cannot find predicted word ' + answer + ' in facts:\n')
+            # print(flattenedExistingFacts)
             # print('\n')
             return str(-1)
     else:
@@ -237,16 +248,17 @@ def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmMo
             if answer in flattenedExistingFacts:
                 indices.append(flattenedExistingFacts.index(answer) + 1)
             else:
-                print('part of answer not found')
-                print(answers)
-                print(flattenedExistingFacts)
+                pass
+                # print('part of answer not found')
+                # print(answers)
+                # print(flattenedExistingFacts)
         return " ".join(str(x) for x in sorted(indices))
 
 def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-only-token.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -288,9 +300,9 @@ degree = 2
 gamma = 0.001
 
 parameterSelection = False
-validate = False
+validate = True
 testTraining = False
-outputTest = True
+outputTest = False
 
 if __name__ == '__main__':
     if parameterSelection:
