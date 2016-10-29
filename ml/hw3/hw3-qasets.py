@@ -24,6 +24,7 @@ print('word2vec dimension: ' + str(w2vDimension) + '\n')
 
 # word tokenizing variables
 tokenDimension = 0
+tokenVectorUnit = 1
 globalDict = {}
 
 def generateTokens(f):
@@ -34,7 +35,7 @@ def generateTokens(f):
             word = word.lower()
             if word not in globalDict:
                 globalDict[word] = tokenDimension
-                print('added ' + word + ' into index at ' + str(tokenDimension))
+                # print('added ' + word + ' into index at ' + str(tokenDimension))
                 tokenDimension = tokenDimension + 1
 
 # load datasets code
@@ -82,7 +83,7 @@ def getVectorFromWord(idx, widx, word):
     # vector from directly tokenizing word
     tokenVector = np.zeros(tokenDimension)
     if word in globalDict:
-        tokenVector[globalDict[word]] = 1
+        tokenVector[globalDict[word]] = tokenVectorUnit
 
     # vector from word2vec model
     # out of dictionary words have zero weights
@@ -92,7 +93,8 @@ def getVectorFromWord(idx, widx, word):
         # assign weight according to word position in sentence
         # print('word: ' + word + ' word idx: ' + str(widx) + ' sent idx: ' + str(idx))
         w2vVector = w2vModel[word] * (widx + 1) * (idx + 1)
-    return np.concatenate([w2vVector, tokenVector] , axis=0)
+    # return np.concatenate([w2vVector, tokenVector] , axis=0)
+    return tokenVector
 
 def getVectorFromWords(idx, words):
     # print(words)
@@ -140,7 +142,6 @@ def addTrainingData(questionFacts, questionWords, answers):
     labelTrain.append(answers)
 
 def loadTrainingData(f):
-    print('token dimension: ' + str(tokenDimension) + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
     for line in f:
@@ -159,6 +160,7 @@ def loadTrainingData(f):
 
 with open('train.txt', 'r') as f:
     generateTokens(f)
+    print('token dimension: ' + str(tokenDimension) + '\n')
 with open('train.txt', 'r') as f:
 # with open('train-s.txt', 'r') as f:
     loadTrainingData(f)
@@ -244,7 +246,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-only-token.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -286,7 +288,7 @@ degree = 2
 gamma = 0.001
 
 parameterSelection = False
-validate = True
+validate = False
 testTraining = False
 outputTest = True
 
