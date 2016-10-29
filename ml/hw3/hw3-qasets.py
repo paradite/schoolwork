@@ -7,6 +7,7 @@ from sklearn.model_selection import cross_val_score
 
 from nltk.corpus import stopwords
 
+from scipy.spatial.distance import cosine
 import itertools
 import math
 import re
@@ -16,7 +17,8 @@ stops = set(stopwords.words("english"))
 nr.seed(3244)
 
 # load word2vec
-w2vModel = word2vec.load('text8.bin')
+# w2vModel = word2vec.load('text8.bin')
+w2vModel = word2vec.load('gn300.bin', encoding='ISO-8859-1')
 # w2vModel = word2vec.load('train-100.bin')
 w2vDimension = w2vModel.vectors.shape[1]
 print('word2vec dimension: ' + str(w2vDimension) + '\n')
@@ -111,6 +113,7 @@ def vectorizeQnFactsAndQnWords(questionFacts, questionWords):
     vectorWordsQn = normalizeVectorWords(vectorWordsQn)
     # vectorSum = np.sum([vectorWordsFact, vectorWordsQn], axis=0)
     # vectorDiff = vectorWordsFact - vectorWordsQn
+    # similarity = cosine(vectorWordsFact, vectorWordsQn)
     return np.concatenate([vectorWordsFact, vectorWordsQn], axis=0)
 
 def addTrainingData(questionFacts, questionWords, answers):
@@ -221,7 +224,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -255,15 +258,25 @@ def printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy):
     print("Train Accuracy: "+ str(trainAccuracy)+"\n")
     print("Test Accuracy: " + str(testAccuracy)+"\n")
 
-cost = 1
+cost = 100
 kernel='rbf'
 # kernel = 'poly'
 degree = 2
-gamma = 'auto'
+# gamma = 'auto'
+gamma = 0.001
 
+parameterSelection = False
 validate = True
 testTraining = False
 outputTest = False
+
+if parameterSelection:
+    costList = [0.01, 0.1, 1, 10, 100, 100]
+    gammaList = [0.0001, 0.001, 0.01, 0.1, 1]
+    for c in costList:
+        for g in gammaList:
+            print('using C: ' + str(c) + ' gamma: ' + str(g))
+            svmCrossValidate(dataTrain, labelTrain, c, kernel, g, degree)
 
 if validate:
     # Cross validate performance on training data set
