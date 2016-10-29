@@ -17,11 +17,24 @@ stops = set(stopwords.words("english"))
 nr.seed(3244)
 
 # load word2vec
-# w2vModel = word2vec.load('text8.bin')
-w2vModel = word2vec.load('gn300.bin', encoding='ISO-8859-1')
+w2vModel = word2vec.load('text8.bin')
 # w2vModel = word2vec.load('train-100.bin')
 w2vDimension = w2vModel.vectors.shape[1]
 print('word2vec dimension: ' + str(w2vDimension) + '\n')
+
+# word tokenizing variables
+tokenDimension = 0
+globalDict = {}
+
+def generateTokens(f):
+    global tokenDimension
+    for line in f:
+        index, isQuestion, words, answers = parseLineTraining(line)
+        for word in words:
+            if word not in globalDict:
+                globalDict[word] = tokenDimension
+                print('added ' + word + ' into index at ' + str(tokenDimension))
+                tokenDimension = tokenDimension + 1
 
 # load datasets code
 def parseLineTraining(line):
@@ -64,18 +77,21 @@ dataTrainRaw = []
 
 def getVectorFromWord(idx, widx, word):
     word = word.lower()
-    # if word in stops:
-        # print('assigning zero vector to stopword: ' + word)
-        # return np.zeros(w2vDimension)
+    
+    # vector from directly tokenizing word
+    tokenVector = np.zeros(tokenDimension)
+    if word in globalDict:
+        tokenVector[globalDict[word]] = 1
+
+    # vector from word2vec model
+    # out of dictionary words have zero weights
+    w2vVector = np.zeros(w2vDimension)
     if word in w2vModel:
         # assign weight according to idx in the facts
         # assign weight according to word position in sentence
         # print('word: ' + word + ' word idx: ' + str(widx) + ' sent idx: ' + str(idx))
-        return w2vModel[word] * (widx + 1) * (idx + 1)
-    else:
-        # out of dictionary words have zero weights
-        # print('out of dict: ' + word)
-        return np.zeros(w2vDimension)
+        w2vVector = w2vModel[word] * (widx + 1) * (idx + 1)
+    return np.concatenate([w2vVector, tokenVector] , axis=0)
 
 def getVectorFromWords(idx, words):
     # print(words)
@@ -94,12 +110,12 @@ def normalizeVectorWords(vectorWords):
     if preserveSentence:
         # take last three facts
         vectorWords = vectorWords[-6:]
-        # sum each fact, [w2vDimension, w2vDimension, w2vDimension]
+        # sum each fact, [w2vDimension + tokenDimension, w2vDimension + tokenDimension, w2vDimension + tokenDimension]
         vectorWords = [np.sum(f, axis=0) for f in vectorWords]
         # pad zeros when less than 3 facts
         while len(vectorWords) < 6:
-            vectorWords.insert(0, np.zeros(w2vDimension))
-        # flatten list, [3 * w2vDimension]
+            vectorWords.insert(0, np.zeros(w2vDimension + tokenDimension))
+        # flatten list, [3 * (w2vDimension + tokenDimension)]
         vectorWords = list(itertools.chain.from_iterable(vectorWords))
         return vectorWords
     else:
@@ -123,6 +139,7 @@ def addTrainingData(questionFacts, questionWords, answers):
     labelTrain.append(answers)
 
 def loadTrainingData(f):
+    print('token dimension: ' + str(tokenDimension) + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
     for line in f:
@@ -139,6 +156,8 @@ def loadTrainingData(f):
             existingFactsWithQuestions.append(words)
             existingFacts.append(words)
 
+with open('train.txt', 'r') as f:
+    generateTokens(f)
 with open('train.txt', 'r') as f:
 # with open('train-s.txt', 'r') as f:
     loadTrainingData(f)
@@ -270,31 +289,32 @@ validate = True
 testTraining = False
 outputTest = False
 
-if parameterSelection:
-    costList = [0.01, 0.1, 1, 10, 100, 100]
-    gammaList = [0.0001, 0.001, 0.01, 0.1, 1]
-    for c in costList:
-        for g in gammaList:
-            print('using C: ' + str(c) + ' gamma: ' + str(g))
-            svmCrossValidate(dataTrain, labelTrain, c, kernel, g, degree)
+if __name__ == '__main__':
+    if parameterSelection:
+        costList = [0.01, 0.1, 1, 10, 100, 100]
+        gammaList = [0.0001, 0.001, 0.01, 0.1, 1]
+        for c in costList:
+            for g in gammaList:
+                print('using C: ' + str(c) + ' gamma: ' + str(g))
+                svmCrossValidate(dataTrain, labelTrain, c, kernel, g, degree)
 
-if validate:
-    # Cross validate performance on training data set
-    svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
+    if validate:
+        # Cross validate performance on training data set
+        svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree)
 
-if testTraining:
-    # train your svm
-    svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
-    print('completed training')
-    # test on the training data
-    trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
-    testAccuracy = 0
-    printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
+    if testTraining:
+        # train your svm
+        svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+        print('completed training')
+        # test on the training data
+        trainAccuracy = svmPredict(dataTrain, labelTrain, svmModel)
+        testAccuracy = 0
+        printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy)
 
-if outputTest:
-    # train your svm
-    svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
-    print('completed training')
-    # Print test data set result
-    with open('test.txt', 'r') as fTest:
-        svmTest(fTest, svmModel)
+    if outputTest:
+        # train your svm
+        svmModel, totalSV = svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree)
+        print('completed training')
+        # Print test data set result
+        with open('test.txt', 'r') as fTest:
+            svmTest(fTest, svmModel)
