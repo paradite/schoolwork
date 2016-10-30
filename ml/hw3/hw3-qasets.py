@@ -6,6 +6,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.decomposition import PCA
 
 from nltk.corpus import stopwords
 
@@ -23,6 +24,9 @@ w2vModel = word2vec.load('text8.bin')
 # w2vModel = word2vec.load('train-100.bin')
 w2vDimension = w2vModel.vectors.shape[1]
 print('word2vec dimension: ' + str(w2vDimension) + '\n')
+
+mlb = MultiLabelBinarizer()
+pca = PCA(n_components=5)
 
 # word tokenizing variables
 tokenDimension = 0
@@ -99,7 +103,7 @@ def getVectorFromWord(idx, widx, word):
         # print('word: ' + word + ' word idx: ' + str(widx) + ' sent idx: ' + str(idx))
         w2vVector = w2vModel[word] * (widx + 1) * (idx + 1)
     return np.concatenate([w2vVector, tokenVector] , axis=0)
-    # return tokenVector
+    # return w2vVector
 
 def getVectorFromWords(idx, words):
     # print(words)
@@ -147,7 +151,7 @@ def addTrainingData(questionFacts, questionWords, answers):
     labelTrain.append(answers)
 
 def loadTrainingData(f):
-    global labelTrain
+    global labelTrain, dataTrain
     existingFacts = []
     existingFactsWithQuestions = []
     for line in f:
@@ -163,10 +167,15 @@ def loadTrainingData(f):
         else:
             existingFactsWithQuestions.append(words)
             existingFacts.append(words)
-    # transform y into multilabel
-    print(labelTrain)
-    labelTrain = MultiLabelBinarizer().fit_transform(labelTrain)
-    print(labelTrain)
+    # transform Y into multilabel
+    labelTrain = mlb.fit_transform(labelTrain)
+    # transform X using PCA
+    print('original input dimension')
+    print(dataTrain[0].shape)
+    dataTrain = pca.fit_transform(dataTrain, labelTrain)
+    print('PCA variance')
+    print(pca.explained_variance_ratio_)
+    print(np.sum(pca.explained_variance_ratio_))
 
 with open('train.txt', 'r') as f:
     generateTokens(f)
@@ -195,7 +204,7 @@ def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     print('input dimension: ' + str(dataTrain[0].shape))
     clf = OneVsRestClassifier(SVC(cost, kernel, degree, gamma, cache_size=800))
     clf.fit(dataTrain, labelTrain)
-    return (clf, np.sum(clf.n_support_))
+    return (clf, 0)
 
 def printWrongPredict(idx, predicted):
     # print(dataTrainRaw[idx])
@@ -220,26 +229,28 @@ def svmPredict(dataTrain, labelTrain, svmModel):
 def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmModel):
     # flatten existing facts list
     flattenedExistingFacts = list(itertools.chain.from_iterable(existingFactsWithQuestions))
-    answerStr = svmModel.predict([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
+    x = pca.transform([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
+    # print(x)
+    answers = svmModel.predict(x)
     # for debugging purposes
     # print(questionFacts)
-    print(' '.join(itertools.chain.from_iterable(getRelevantFacts(questionFacts, questionWords))))
-    print(' '.join(questionWords))
-    print(answerStr[0])
+    # print(' '.join(itertools.chain.from_iterable(getRelevantFacts(questionFacts, questionWords))))
+    # print(' '.join(questionWords))
+    answers = mlb.inverse_transform(answers)
 
-    answers = answerStr[0].split(',')
+    answers = list(answers[0])
+    if len(answers) == 0:
+        return str(-1)
     if len(answers) == 1:
         answer = answers[0]
-        if answer == 'nothing':
-            return str(-1)
-        elif answer in flattenedExistingFacts:
+        if answer in flattenedExistingFacts:
             # print(answer + '\n')
             # print(flattenedExistingFacts)
             # print('\n')
             return str(flattenedExistingFacts.index(answer) + 1)
         else:
-            # print('cannot find predicted word ' + answer + ' in facts:\n')
-            # print(flattenedExistingFacts)
+            print('cannot find predicted word ' + answer + ' in facts:\n')
+            print(flattenedExistingFacts)
             # print('\n')
             return str(-1)
     else:
@@ -249,16 +260,16 @@ def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmMo
                 indices.append(flattenedExistingFacts.index(answer) + 1)
             else:
                 pass
-                # print('part of answer not found')
-                # print(answers)
-                # print(flattenedExistingFacts)
+                print('part of answer not found')
+                print(answers)
+                print(flattenedExistingFacts)
         return " ".join(str(x) for x in sorted(indices))
 
 def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token-multi-label-pca.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -293,8 +304,8 @@ def printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy):
     print("Test Accuracy: " + str(testAccuracy)+"\n")
 
 cost = 100
-kernel='rbf'
-# kernel = 'poly'
+# kernel='rbf'
+kernel = 'poly'
 degree = 2
 # gamma = 'auto'
 gamma = 0.001
