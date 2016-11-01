@@ -8,6 +8,8 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.decomposition import PCA
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from nltk.corpus import stopwords
 
@@ -174,11 +176,11 @@ def loadTrainingData(f):
     print('original input dimension')
     print(dataTrain[0].shape)
     # print(dataTrain[0])
-    dataTrain = pca.fit_transform(dataTrain, labelTrain)
+    # dataTrain = pca.fit_transform(dataTrain, labelTrain)
     # print(dataTrain[0])
-    print('PCA variance')
-    print(pca.explained_variance_ratio_)
-    print(np.sum(pca.explained_variance_ratio_))
+    # print('PCA variance')
+    # print(pca.explained_variance_ratio_)
+    # print(np.sum(pca.explained_variance_ratio_))
 
 with open('train.txt', 'r') as f:
     generateTokens(f)
@@ -193,8 +195,9 @@ print('--------------------')
 # Learning code
 
 def svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree):
-    base = SVC(cost, kernel, degree, gamma, cache_size=800, probability=True)
-    clf = OneVsRestClassifier(AdaBoostClassifier(base, n_estimators=2))
+    base = SVC(cost, kernel, degree, gamma, cache_size=800)
+    clf = OneVsRestClassifier(RandomForestClassifier(n_estimators=50))
+    # clf = OneVsRestClassifier(BaggingClassifier(base))
     print('input dimension: ' + str(dataTrain[0].shape))
     scores = cross_val_score(clf, dataTrain, labelTrain, cv=5, n_jobs=4, verbose=1)
     print(scores)
@@ -206,8 +209,9 @@ def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     # print(labelTrain)
     # clf = SVC(cost, kernel, degree, gamma, class_weight="balanced")
     print('input dimension: ' + str(dataTrain[0].shape))
-    base = SVC(cost, kernel, degree, gamma, cache_size=800, probability=True)
-    clf = OneVsRestClassifier(AdaBoostClassifier(base, n_estimators=2))
+    base = SVC(cost, kernel, degree, gamma, cache_size=800)
+    # clf = OneVsRestClassifier(BaggingClassifier(base))
+    clf = OneVsRestClassifier(RandomForestClassifier(n_estimators=50))
     clf.fit(dataTrain, labelTrain)
     return (clf, 0)
 
@@ -234,9 +238,9 @@ def svmPredict(dataTrain, labelTrain, svmModel):
 def getSvmOutput(questionFacts, existingFactsWithQuestions, questionWords, svmModel):
     # flatten existing facts list
     flattenedExistingFacts = list(itertools.chain.from_iterable(existingFactsWithQuestions))
-    x = pca.transform([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
+    # x = pca.transform([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
     # print(x)
-    answers = svmModel.predict(x)
+    answers = svmModel.predict([vectorizeQnFactsAndQnWords(questionFacts, questionWords)])
     # for debugging purposes
     # print(questionFacts)
     # print(' '.join(itertools.chain.from_iterable(getRelevantFacts(questionFacts, questionWords))))
@@ -274,7 +278,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token-multi-label-pca-ada.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-forest-50.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
