@@ -7,6 +7,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.decomposition import PCA
+from sklearn.ensemble import AdaBoostClassifier
 
 from nltk.corpus import stopwords
 
@@ -26,7 +27,7 @@ w2vDimension = w2vModel.vectors.shape[1]
 print('word2vec dimension: ' + str(w2vDimension) + '\n')
 
 mlb = MultiLabelBinarizer()
-pca = PCA(n_components=5)
+pca = PCA(n_components=50)
 
 # word tokenizing variables
 tokenDimension = 0
@@ -172,7 +173,9 @@ def loadTrainingData(f):
     # transform X using PCA
     print('original input dimension')
     print(dataTrain[0].shape)
+    # print(dataTrain[0])
     dataTrain = pca.fit_transform(dataTrain, labelTrain)
+    # print(dataTrain[0])
     print('PCA variance')
     print(pca.explained_variance_ratio_)
     print(np.sum(pca.explained_variance_ratio_))
@@ -190,7 +193,8 @@ print('--------------------')
 # Learning code
 
 def svmCrossValidate(dataTrain, labelTrain, cost, kernel, gamma, degree):
-    clf = OneVsRestClassifier(SVC(cost, kernel, degree, gamma, cache_size=800))
+    base = SVC(cost, kernel, degree, gamma, cache_size=800, probability=True)
+    clf = OneVsRestClassifier(AdaBoostClassifier(base, n_estimators=2))
     print('input dimension: ' + str(dataTrain[0].shape))
     scores = cross_val_score(clf, dataTrain, labelTrain, cv=5, n_jobs=4, verbose=1)
     print(scores)
@@ -202,7 +206,8 @@ def svmTrain(dataTrain, labelTrain, cost, kernel, gamma, degree):
     # print(labelTrain)
     # clf = SVC(cost, kernel, degree, gamma, class_weight="balanced")
     print('input dimension: ' + str(dataTrain[0].shape))
-    clf = OneVsRestClassifier(SVC(cost, kernel, degree, gamma, cache_size=800))
+    base = SVC(cost, kernel, degree, gamma, cache_size=800, probability=True)
+    clf = OneVsRestClassifier(AdaBoostClassifier(base, n_estimators=2))
     clf.fit(dataTrain, labelTrain)
     return (clf, 0)
 
@@ -269,7 +274,7 @@ def printOutput(fo, storyId, questionId, output):
     fo.write(str(storyId) + '_' + str(questionId) + ',' + output + '\n')
 
 def svmTest(f, svmModel):
-    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token-multi-label-pca.txt', 'w')
+    fo = open('test-output-r-' + kernel + '-filter-linear-weight-linear-word-weight-split-cost-100-token-multi-label-pca-ada.txt', 'w')
     fo.write("textID,sortedAnswerList" + '\n')
     existingFacts = []
     existingFactsWithQuestions = []
@@ -304,8 +309,8 @@ def printResult(kernel, cost, totalSV, trainAccuracy, testAccuracy):
     print("Test Accuracy: " + str(testAccuracy)+"\n")
 
 cost = 100
-# kernel='rbf'
-kernel = 'poly'
+kernel='rbf'
+# kernel = 'poly'
 degree = 2
 # gamma = 'auto'
 gamma = 0.001
@@ -317,7 +322,7 @@ outputTest = False
 
 if __name__ == '__main__':
     if parameterSelection:
-        costList = [0.01, 0.1, 1, 10, 100, 100]
+        costList = [0.01, 0.1, 1, 10, 100, 1000]
         gammaList = [0.0001, 0.001, 0.01, 0.1, 1]
         for c in costList:
             for g in gammaList:
